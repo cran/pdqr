@@ -1,4 +1,4 @@
-## ---- include = FALSE----------------------------------------------------
+## ---- include = FALSE---------------------------------------------------------
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
@@ -8,7 +8,7 @@ library(pdqr)
 
 set.seed(103)
 
-## ----form_trans_random---------------------------------------------------
+## ----form_trans_random--------------------------------------------------------
 # Transformation function should be vectorized
 trans_fun <- function(x, y) {sin(x * y)}
 d_norm <- as_d(dnorm)
@@ -29,7 +29,7 @@ plot(d_transformed, col = "black", main = "Transformations of distribution")
   # `d_transformed_2()` differs slightly because of randomness involved
 lines(d_transformed_2, col = "blue")
 
-## ----form_trans_bruteforce-----------------------------------------------
+## ----form_trans_bruteforce----------------------------------------------------
 d_binom <- as_d(dbinom, size = 10, prob = 0.3)
 
 (d_binom_transformed <- form_trans(
@@ -43,7 +43,7 @@ d_binom_transformed_random <- form_trans(
 )
 head(meta_x_tbl(d_binom_transformed_random))
 
-## ----form_resupport------------------------------------------------------
+## ----form_resupport-----------------------------------------------------------
 plot(
   d_transformed, col = "black",
   main = "Different methods of `form_resupport()`"
@@ -73,7 +73,7 @@ lines(
   col = "magenta"
 )
 
-## ----form_tails----------------------------------------------------------
+## ----form_tails---------------------------------------------------------------
 plot(d_norm, col = "black", main = "Different methods of `form_tails()`")
 
 # Remove tail(s) completely with `method = "trim"`. By default, tails from both
@@ -92,7 +92,7 @@ lines(
 new_supp <- as_q(d_norm)(c(0.1, 1-0.05))
 form_resupport(d_norm, support = new_supp, method = "trim")
 
-## ----form_recenter-form_respread-----------------------------------------
+## ----form_recenter-form_respread----------------------------------------------
 my_beta <- as_d(dbeta, shape1 = 1, shape2 = 3)
 
 # Distribution is shifted to the right so as to have mean (default method of
@@ -106,7 +106,7 @@ summ_spread(my_beta3, method = "range")
   # Center remains unchainged
 summ_center(my_beta3)
 
-## ----form_mix------------------------------------------------------------
+## ----form_mix-----------------------------------------------------------------
 # All inputs have the same type
 dis_list <- list(
   as_d(dbinom, size = 10, prob = 0.3),
@@ -125,7 +125,7 @@ mixed_both <- form_mix(c(norm_list, dis_list))
 plot(mixed_both, main = 'Density of mixture of "discrete" and "continuous"')
 plot(as_p(mixed_both), main = 'CDF of mixture of "discrete" and "continuous"')
 
-## ----form_estimate-------------------------------------------------------
+## ----form_estimate------------------------------------------------------------
 (unif_mean <- form_estimate(d_unif, stat = mean, sample_size = 20))
 plot(
   unif_mean, main = "Distribution of mean statistic for 20 elements of uniform"
@@ -149,11 +149,11 @@ plot(
   # with sample size 20
 lines(as_d(dbeta, shape1 = 15, shape2 = 6), col = "red")
 
-## ----base_Math-----------------------------------------------------------
+## ----base_Math----------------------------------------------------------------
 # Exponent of uniform distribution
 exp(d_unif)
 
-## ----base_Ops------------------------------------------------------------
+## ----base_Ops-----------------------------------------------------------------
 # Distribution of used in `form_trans()` section transformation function. Note
 # the correct support [-1, 1] without effect of "extending property" of
 # `density()`. Here the default method of `form_resupport()` is used.
@@ -165,7 +165,7 @@ sin(d_norm * d_unif)
 # of `d_unif` with probability around 0.316.
 d_norm > d_unif
 
-## ----base_Summary--------------------------------------------------------
+## ----base_Summary-------------------------------------------------------------
 # Distribution of maximum of three random variables
 max(d_norm, d_norm, d_norm)
 

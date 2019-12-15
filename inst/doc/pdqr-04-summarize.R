@@ -1,4 +1,4 @@
-## ---- include = FALSE----------------------------------------------------
+## ---- include = FALSE---------------------------------------------------------
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
@@ -8,12 +8,12 @@ library(pdqr)
 
 set.seed(104)
 
-## ----setup---------------------------------------------------------------
+## ----setup--------------------------------------------------------------------
 my_beta <- as_d(dbeta, shape1 = 2, shape2 = 5)
 my_norm <- as_d(dnorm, mean = 0.5)
 my_beta_mix <- form_mix(list(my_beta, my_beta + 1))
 
-## ----basic_center--------------------------------------------------------
+## ----basic_center-------------------------------------------------------------
 # Usage of `summ_center()`
 summ_center(my_beta, method = "mean")
 summ_center(my_beta, method = "median")
@@ -27,7 +27,7 @@ summ_mode(my_beta)
 # `summ_mode()` can compute local modes instead of default global
 summ_mode(my_beta_mix, method = "local")
 
-## ----basic_spread--------------------------------------------------------
+## ----basic_spread-------------------------------------------------------------
 # Usage of `summ_spread()`
 summ_spread(my_beta, method = "sd")
 summ_spread(my_beta, method = "var")
@@ -42,13 +42,13 @@ summ_iqr(my_beta)
 summ_mad(my_beta)
 summ_range(my_beta)
 
-## ----basic_moments-------------------------------------------------------
+## ----basic_moments------------------------------------------------------------
 summ_moment(my_beta, order = 3)
 summ_moment(my_beta, order = 3, central = TRUE)
 summ_moment(my_beta, order = 3, standard = TRUE)
 summ_moment(my_beta, order = 3, absolute = TRUE)
 
-## ----basic_skewness-kurtosis---------------------------------------------
+## ----basic_skewness-kurtosis--------------------------------------------------
 summ_skewness(my_beta)
 
 # This by default computes excess kurtosis
@@ -57,25 +57,25 @@ summ_kurtosis(my_beta)
   # Use `excess = FALSE` to compute non-excess kurtotsis
 summ_kurtosis(my_beta, excess = FALSE)
 
-## ----basic_quantiles-----------------------------------------------------
+## ----basic_quantiles----------------------------------------------------------
 summ_quantile(my_beta, probs = seq(0, 1, by = 0.25))
 
-## ----basic_entropy-------------------------------------------------------
+## ----basic_entropy------------------------------------------------------------
 summ_entropy(my_beta)
 summ_entropy(new_d(1:10, type = "discrete"))
 
-## ----basic_entropy2------------------------------------------------------
+## ----basic_entropy2-----------------------------------------------------------
 summ_entropy2(my_beta, my_norm)
 summ_entropy2(my_norm, my_beta)
 summ_entropy2(my_norm, my_beta, clip = exp(-10))
 summ_entropy2(my_beta, my_norm, method = "cross")
 
-## ----regions_interval----------------------------------------------------
+## ----regions_interval---------------------------------------------------------
 summ_interval(my_beta, level = 0.9, method = "minwidth")
 summ_interval(my_beta, level = 0.9, method = "percentile")
 summ_interval(my_beta, level = 0.9, method = "sigma")
 
-## ----regions_hdr---------------------------------------------------------
+## ----regions_hdr--------------------------------------------------------------
 # Unimodal distribution
 summ_hdr(my_beta, level = 0.9)
 
@@ -85,7 +85,7 @@ summ_hdr(my_beta_mix, level = 0.9)
   # Compare this to single interval of minimum width
 summ_interval(my_beta_mix, level = 0.9, method = "minwidth")
 
-## ----regions_family------------------------------------------------------
+## ----regions_family-----------------------------------------------------------
 beta_mix_hdr <- summ_hdr(my_beta_mix, level = 0.9)
 beta_mix_interval <- summ_interval(my_beta_mix, level = 0.9)
 
@@ -111,7 +111,7 @@ region_width(beta_mix_interval)
 plot(my_beta_mix, main = "90% highest density region")
 region_draw(beta_mix_hdr)
 
-## ----distance------------------------------------------------------------
+## ----distance-----------------------------------------------------------------
 # Kolmogorov-Smirnov distance
 summ_distance(my_beta, my_norm, method = "KS")
 
@@ -138,11 +138,11 @@ summ_distance(my_beta, my_norm, method = "align")
 # works even if they are different (with big numerical penalty).
 summ_distance(my_beta, my_norm, method = "entropy")
 
-## ----sep-class_separation------------------------------------------------
+## ----sep-class_separation-----------------------------------------------------
 summ_separation(my_beta, my_norm, method = "KS")
 summ_separation(my_beta, my_norm, method = "F1")
 
-## ----sep-class_metrics---------------------------------------------------
+## ----sep-class_metrics--------------------------------------------------------
 # Many threshold values can be supplied
 thres_vec <- seq(0, 1, by = 0.2)
 summ_classmetric(f = my_beta, g = my_norm, threshold = thres_vec, method = "F1")
@@ -152,13 +152,13 @@ summ_classmetric_df(
   f = my_beta, g = my_norm, threshold = thres_vec, method = c("GM", "F1", "MCC")
 )
 
-## ----sep-class_roc-------------------------------------------------------
+## ----sep-class_roc------------------------------------------------------------
 my_roc <- summ_roc(my_beta, my_norm)
 head(my_roc)
 summ_rocauc(my_beta, my_norm)
 roc_plot(my_roc)
 
-## ----ordering------------------------------------------------------------
+## ----ordering-----------------------------------------------------------------
 # Here the only clear "correct" ordering is that `a <= b`.
 f_list <- list(a = my_beta, b = my_beta + 1, c = my_norm)
 
@@ -183,11 +183,11 @@ summ_sort(f_list, decreasing = TRUE)
 # Rank elements: 1 indicates "the smallest", `length(f_list)` - "the biggest"
 summ_rank(f_list)
 
-## ----other_prob----------------------------------------------------------
+## ----other_prob---------------------------------------------------------------
 summ_prob_true(my_beta >= my_norm)
 summ_prob_false(my_beta >= 2*my_norm)
 
-## ----other_pval----------------------------------------------------------
+## ----other_pval---------------------------------------------------------------
 # By default two-sided p-value is computed
 summ_pval(my_beta, obs = 0.7)
 summ_pval(my_beta, obs = 0.7, method = "left")

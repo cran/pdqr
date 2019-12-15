@@ -1,4 +1,4 @@
-## ---- include = FALSE----------------------------------------------------
+## ---- include = FALSE---------------------------------------------------------
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
@@ -8,7 +8,7 @@ library(pdqr)
 
 set.seed(102)
 
-## ----existing------------------------------------------------------------
+## ----existing-----------------------------------------------------------------
 d_fin <- new_d(1:4, "discrete")
 
 meta_x_tbl(d_fin)
@@ -17,7 +17,7 @@ meta_x_tbl(d_fin)
 (p_fin <- as_p(d_fin))
 meta_x_tbl(p_fin)
 
-## ----honored-------------------------------------------------------------
+## ----honored------------------------------------------------------------------
 # "Honored" distributions
 as_d(dnorm)
 
@@ -42,7 +42,7 @@ as_d(dpois, lambda = 1)
 # This isn't recognized as "honored", but output is very close to "honored"
 as_d(function(x) {dnorm(x)})
 
-## ----support-detection_demo----------------------------------------------
+## ----support-detection_demo---------------------------------------------------
 my_d <- function(x) {ifelse(x >= -1 & x <= 1, 0.75 * (1 - x^2), 0)}
 
   # With default support detection
@@ -53,7 +53,7 @@ as_d(my_d, support = c(-1, NA))
 as_d(my_d, support = c(NA, 1))
 as_d(my_d, support = c(-1, 1))
 
-## ----support-detection_performance---------------------------------------
+## ----support-detection_performance--------------------------------------------
 (p_norm <- as_p(function(x) {pnorm(x)}))
 (d_norm <- as_d(function(x) {dnorm(x)}))
 (q_norm <- as_q(function(x) {qnorm(x)}))
@@ -67,7 +67,7 @@ lines(d_norm, col = "blue")
 lines(as_d(q_norm), col = "red")
 lines(as_d(r_norm), col = "green")
 
-## ----support_detection_infinity------------------------------------------
+## ----support_detection_infinity-----------------------------------------------
 x_grid <- seq(0, 0.06, by = 1e-5)
 
 # "Honored" distribution
@@ -86,12 +86,12 @@ plot(
 )
 lines(x_grid, -log(x_grid), col = "red")
 
-## ----pdqr_approx_error_demo----------------------------------------------
+## ----pdqr_approx_error_demo---------------------------------------------------
 approx_err <- pdqr_approx_error(as_d(dnorm, sd = 2), dnorm, sd = 2)
 head(approx_err)
 summary(approx_err)
 
-## ----pdqr_approx_error_common--------------------------------------------
+## ----pdqr_approx_error_common-------------------------------------------------
 abserror_stat <- function(f, ref_f, ...) {
   approx_err <- pdqr_approx_error(f, ref_f, ...)
   

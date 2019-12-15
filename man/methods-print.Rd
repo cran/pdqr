@@ -63,7 +63,8 @@ print(r_unif >= 0.3)
 
 }
 \seealso{
-Other pdqr methods for generic functions: \code{\link{methods-group-generic}},
-  \code{\link{methods-plot}}
+Other pdqr methods for generic functions: 
+\code{\link{methods-group-generic}},
+\code{\link{methods-plot}}
 }
 \concept{pdqr methods for generic functions}

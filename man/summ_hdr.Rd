@@ -16,8 +16,8 @@ of intervals.}
 A data frame with one row representing one closed interval of HDR and
 the following columns:
 \itemize{
-\item \strong{left} <dbl> : Left end of intervals.
-\item \strong{right} <dbl> : Right end of intervals.
+\item \strong{left} \verb{<dbl>} : Left end of intervals.
+\item \strong{right} \verb{<dbl>} : Right end of intervals.
 }
 }
 \description{
@@ -105,13 +105,19 @@ HDR.
 
 \code{\link[=summ_interval]{summ_interval()}} for computing of single interval summary of distribution.
 
-Other summary functions: \code{\link{summ_center}},
-  \code{\link{summ_classmetric}},
-  \code{\link{summ_distance}}, \code{\link{summ_entropy}},
-  \code{\link{summ_interval}}, \code{\link{summ_moment}},
-  \code{\link{summ_order}}, \code{\link{summ_prob_true}},
-  \code{\link{summ_pval}}, \code{\link{summ_quantile}},
-  \code{\link{summ_roc}}, \code{\link{summ_separation}},
-  \code{\link{summ_spread}}
+Other summary functions: 
+\code{\link{summ_center}()},
+\code{\link{summ_classmetric}()},
+\code{\link{summ_distance}()},
+\code{\link{summ_entropy}()},
+\code{\link{summ_interval}()},
+\code{\link{summ_moment}()},
+\code{\link{summ_order}()},
+\code{\link{summ_prob_true}()},
+\code{\link{summ_pval}()},
+\code{\link{summ_quantile}()},
+\code{\link{summ_roc}()},
+\code{\link{summ_separation}()},
+\code{\link{summ_spread}()}
 }
 \concept{summary functions}

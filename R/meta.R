@@ -53,9 +53,8 @@
 #'
 #' @section Pdqr type:
 #'
-#' Pdqr type is returned by `meta_type()`. This can be one of "discrete" (short
-#' for "finite") or "continuous". Represents **type of underlying
-#' distribution**:
+#' Pdqr type is returned by `meta_type()`. This can be one of "discrete" or
+#' "continuous". Represents **type of underlying distribution**:
 #' - Type "discrete" is used for distributions with finite number of outcomes.
 #' Functions with "discrete" type has a fixed set of "x" values ("x" column in
 #' "x_tbl" metadata) on which d-function returns possibly non-zero output
@@ -137,7 +136,7 @@ NULL
 #' @rdname meta
 #' @export
 meta_all <- function(f) {
-  check_f_envir(f)
+  assert_f_envir(f)
 
   env_meta_names <- c("type", "support", "x_tbl")
 
@@ -167,7 +166,7 @@ meta_class <- function(f) {
 #' @rdname meta
 #' @export
 meta_type <- function(f) {
-  check_f_envir(f)
+  assert_f_envir(f)
 
   get0("type", envir = environment(f), inherits = FALSE)
 }
@@ -175,7 +174,7 @@ meta_type <- function(f) {
 #' @rdname meta
 #' @export
 meta_support <- function(f) {
-  check_f_envir(f)
+  assert_f_envir(f)
 
   get0("support", envir = environment(f), inherits = FALSE)
 }
@@ -183,7 +182,7 @@ meta_support <- function(f) {
 #' @rdname meta
 #' @export
 meta_x_tbl <- function(f) {
-  check_f_envir(f)
+  assert_f_envir(f)
 
   get0("x_tbl", envir = environment(f), inherits = FALSE)
 }
@@ -192,7 +191,11 @@ has_meta <- function(f, elem) {
   !is.null(meta_all(f)[[elem]])
 }
 
-check_f_envir <- function(f) {
+assert_f_envir <- function(f) {
+  if (dont_assert()) {
+    return(TRUE)
+  }
+
   f_env <- environment(f)
 
   if (is.null(f_env)) {

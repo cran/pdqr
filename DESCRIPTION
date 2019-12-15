@@ -1,6 +1,6 @@
 Package: pdqr
 Title: Work with Custom Distribution Functions
-Version: 0.2.0
+Version: 0.2.1
 Authors@R: 
     person(given = "Evgeni",
            family = "Chasnovski",
@@ -28,7 +28,7 @@ VignetteBuilder: knitr
 Encoding: UTF-8
 Language: en-US
 LazyData: true
-RoxygenNote: 6.1.1
+RoxygenNote: 7.0.1
 Collate: 'as_p.R' 'as_d.R' 'as_q.R' 'as_r.R' 'assertions.R'
         'form-compare.R' 'form-other.R' 'form_regrid.R'
         'form_resupport.R' 'form_retype.R' 'form_tails.R'
@@ -41,8 +41,8 @@ Collate: 'as_p.R' 'as_d.R' 'as_q.R' 'as_r.R' 'assertions.R'
         'utils-form.R' 'utils-new.R' 'utils-summ.R' 'utils.R' 'x_tbl.R'
         'zzz.R'
 NeedsCompilation: no
-Packaged: 2019-11-04 21:07:06 UTC; evgeni
+Packaged: 2019-12-15 12:00:45 UTC; evgeni
 Author: Evgeni Chasnovski [aut, cre]
 Maintainer: Evgeni Chasnovski <evgeni.chasnovski@gmail.com>
 Repository: CRAN
-Date/Publication: 2019-11-06 15:40:02 UTC
+Date/Publication: 2019-12-15 16:50:02 UTC

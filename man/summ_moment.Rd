@@ -6,8 +6,7 @@
 \alias{summ_kurtosis}
 \title{Summarize distribution with moment}
 \usage{
-summ_moment(f, order, central = FALSE, standard = FALSE,
-  absolute = FALSE)
+summ_moment(f, order, central = FALSE, standard = FALSE, absolute = FALSE)
 
 summ_skewness(f)
 
@@ -22,7 +21,7 @@ non-negative number (even fractional).}
 \item{central}{Whether to compute central moment (subtract
 \link[=summ_mean]{mean} of distribution).}
 
-\item{standard}{Whether to compute standard moment (divide by \link[=summ_sd]{standar deviation} of distribution).}
+\item{standard}{Whether to compute standard moment (divide by \link[=summ_sd]{standard deviation} of distribution).}
 
 \item{absolute}{Whether to compute absolute moment (take absolute value of
 random variable created after possible effect of \code{central} and \code{standard}).}
@@ -64,13 +63,19 @@ summ_kurtosis(d_beta, excess = FALSE)
 \code{\link[=summ_center]{summ_center()}} for computing distribution's center, \code{\link[=summ_spread]{summ_spread()}}
 for spread.
 
-Other summary functions: \code{\link{summ_center}},
-  \code{\link{summ_classmetric}},
-  \code{\link{summ_distance}}, \code{\link{summ_entropy}},
-  \code{\link{summ_hdr}}, \code{\link{summ_interval}},
-  \code{\link{summ_order}}, \code{\link{summ_prob_true}},
-  \code{\link{summ_pval}}, \code{\link{summ_quantile}},
-  \code{\link{summ_roc}}, \code{\link{summ_separation}},
-  \code{\link{summ_spread}}
+Other summary functions: 
+\code{\link{summ_center}()},
+\code{\link{summ_classmetric}()},
+\code{\link{summ_distance}()},
+\code{\link{summ_entropy}()},
+\code{\link{summ_hdr}()},
+\code{\link{summ_interval}()},
+\code{\link{summ_order}()},
+\code{\link{summ_prob_true}()},
+\code{\link{summ_pval}()},
+\code{\link{summ_quantile}()},
+\code{\link{summ_roc}()},
+\code{\link{summ_separation}()},
+\code{\link{summ_spread}()}
 }
 \concept{summary functions}

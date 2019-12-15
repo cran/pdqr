@@ -1,3 +1,4 @@
+# Expectations ------------------------------------------------------------
 expect_distr_fun <- function(input, pdqr_class, type) {
   expect_true(is.function(input))
   expect_is(input, pdqr_class)
@@ -133,8 +134,8 @@ expect_x_tbl_imputation <- function(f) {
   expect_equal(meta_x_tbl(output_4), x_con_x_tbl)
 }
 
-expect_ref_x_tbl <- function(f, x_tbl) {
-  expect_equal(meta_x_tbl(f)[, 1:2], x_tbl[, 1:2])
+expect_ref_x_tbl <- function(f, x_tbl, ...) {
+  expect_equal(meta_x_tbl(f)[, 1:2], x_tbl[, 1:2], ...)
 }
 
 expect_equal_x_tbl <- function(f_1, f_2) {
@@ -195,4 +196,13 @@ expect_pdqr_print <- function(f, dis_name, con_name = dis_name) {
 
 regex_scatter <- function(...) {
   paste0(c(...), collapse = ".*")
+}
+
+
+# Skips -------------------------------------------------------------------
+skip_if_noLD <- function() {
+  skip_if(
+    condition = !isTRUE(capabilities()[["long.double"]]),
+    message = "No long doubles."
+  )
 }

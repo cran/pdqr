@@ -141,7 +141,7 @@ region_is_in <- function(region, x, left_closed = TRUE, right_closed = TRUE) {
 
   # Inside intervals left index should be bigger than right by 1 because `x`
   # element should be more than left and less than right.
-  is_inside <- left_ind == right_ind + 1
+  is_inside <- left_ind == (right_ind + 1)
 
   # There are corner cases when consecutive intervals have common edge and `x`
   # has element equal to that edge. For example, for region [1; 2], [2; 3] and
@@ -256,38 +256,43 @@ region_new <- function(left, right) {
 }
 
 assert_region <- function(df) {
+  if (dont_assert()) {
+    return(TRUE)
+  }
+
   df_name <- enbacktick(deparse(substitute(df)))
+  start_msg <- paste0(df_name, " is not a region. ")
 
   if (missing(df)) {
     error_missing(df_name, "region data frame")
   }
 
   if (!is.data.frame(df)) {
-    stop_collapse(df_name, " should be a data frame.")
+    stop_collapse(start_msg, "It should be a data frame.")
   }
   if (!(("left" %in% names(df)) && is.numeric(df[["left"]]) &&
         all(is.finite(df[["left"]])))) {
     stop_collapse(
-      df_name, ' should have numeric column "left" with finite values.'
+      start_msg, 'It should have numeric column "left" with finite values.'
     )
   }
   if (!(("right" %in% names(df)) && is.numeric(df[["right"]]) &&
         all(is.finite(df[["right"]])))) {
     stop_collapse(
-      df_name, ' should have numeric column "right" with finite values.'
+      start_msg, 'It should have numeric column "right" with finite values.'
     )
   }
   if (!all(df[["right"]] >= df[["left"]])) {
     stop_collapse(
-      'In ', df_name, ' all elements of column "right" should be not less ',
-      'than corresponding elements from column "left".'
+      start_msg, 'All elements of column "right" should be not less than ',
+      'corresponding elements from column "left".'
     )
   }
   if (!is_region_ordered(df)) {
     stop_collapse(
-      'In ', df_name, ' columns "left" and "right" should represent ordered ',
-      'set of distinct intervals: left[1] <= right[1] <= left[2] <= rihgt[2] ',
-      '<= ..., and there should not be duplicated intervals.'
+      start_msg, 'Columns "left" and "right" should represent ordered set of ',
+      'distinct intervals: left[1] <= right[1] <= left[2] <= rihgt[2] <= ..., ',
+      'and there should not be duplicated intervals.'
     )
   }
 
