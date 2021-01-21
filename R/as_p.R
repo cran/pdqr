@@ -19,7 +19,9 @@ as_p.default <- function(f, support = NULL, ..., n_grid = 10001) {
   }
 
   # Treate `f` as unknown p-function
-  p_f <- function(q) {f(q, ...)}
+  p_f <- function(q) {
+    f(q, ...)
+  }
 
   # Format support as vector with length two where `NA` indicates value to be
   # detected
@@ -43,6 +45,9 @@ as_p.default <- function(f, support = NULL, ..., n_grid = 10001) {
   # approximation of q-function in case `as_q()` is called
   x_tbl <- remove_zero_edge_y(data.frame(x = x, y = y))
 
+  # Speed optimization (skips possibly expensive assertions)
+  disable_asserting_locally()
+
   new_p(x_tbl, "continuous")
 }
 
@@ -50,6 +55,9 @@ as_p.default <- function(f, support = NULL, ..., n_grid = 10001) {
 #' @export
 as_p.pdqr <- function(f, ...) {
   assert_pdqr_fun(f)
+
+  # Speed optimization (skips possibly expensive assertions)
+  disable_asserting_locally()
 
   new_p(x = meta_x_tbl(f), type = meta_type(f))
 }
@@ -76,7 +84,9 @@ solve_for_quan <- function(p_f, quan) {
   tryCatch(
     # Solve equation on interval (-10^100; 10^100)
     stats::uniroot(
-      function(q) {p_f(q) - quan}, 1e100 * c(-1, 1)
+      function(q) {
+        p_f(q) - quan
+      }, 1e100 * c(-1, 1)
     )[["root"]],
     error = function(e) {
       stop_collapse("Can't find quantile ", quan, " during support detection.")

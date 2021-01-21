@@ -140,25 +140,25 @@
 #'
 #' # Math
 #' plot(d_norm, main = "Math methods")
-#'   # `abs()` and `sign()` are not random
+#' ## `abs()` and `sign()` are not random
 #' lines(abs(d_norm), col = "red")
-#'   # All others are random
+#' ## All others are random
 #' lines(cos(d_norm), col = "green")
 #' lines(cos(d_norm), col = "blue")
 #'
-#'   # Although here distribution shouldn't change, it changes slightly due to
-#'   # random implementation
+#' ## Although here distribution shouldn't change, it changes slightly due to
+#' ## random implementation
 #' meta_x_tbl(d_dis)
 #' meta_x_tbl(floor(d_dis))
 #'
 #' # Ops
-#'   # Single input, linear transformations, and logical are not random
+#' ## Single input, linear transformations, and logical are not random
 #' d_dis > 1
 #' !(d_dis > 1)
-#' d_norm >= (2*d_norm+1)
-#'   # All others are random
+#' d_norm >= (2 * d_norm + 1)
+#' ## All others are random
 #' plot(d_norm + d_norm)
-#'   # This is an exact reference curve
+#' ## This is an exact reference curve
 #' lines(as_d(dnorm, sd = sqrt(2)), col = "red")
 #'
 #' plot(d_dis + d_norm)
@@ -166,16 +166,16 @@
 #' plot(d_unif^d_unif)
 #'
 #' # Summary
-#'   # `all()` and `any()` are non-random
+#' ## `all()` and `any()` are non-random
 #' all(d_dis > 1, d_dis > 1)
-#'   # Others are random
+#' ## Others are random
 #' plot(max(d_norm, d_norm, d_norm))
 #'
 #' plot(d_norm + d_norm + d_norm)
 #' lines(sum(d_norm, d_norm, d_norm), col = "red")
 #'
-#'   # Using single numbers is allowed, but gives misleading output in case of
-#'   # "continuous" functions. Use other functions instead (see documentation).
+#' ## Using single numbers is allowed, but gives misleading output in case of
+#' ## "continuous" functions. Use other functions instead (see documentation).
 #' plot(min(d_unif, 0.5))
 #' lines(form_resupport(d_unif, c(NA, 0.5), method = "winsor"), col = "blue")
 #'
@@ -186,15 +186,14 @@
 #'   pdqr.group_gen.args_new = list(adjust = 0.5)
 #' )
 #' lines(d_unif + d_unif, col = "red")
-#'   # `f + f` is different from `2*f` due to independency assumption. Also the
-#'   # latter implemented non-randomly.
+#' ## `f + f` is different from `2*f` due to independency assumption. Also the
+#' ## latter implemented non-randomly.
 #' lines(2 * d_unif, col = "blue")
 #'
 #' # Methods for generics attempt to repair support, so they are more reasonable
 #' # to use than direct use of `form_trans()`
 #' d_unif + d_unif
 #' form_trans(list(d_unif, d_unif), `+`)
-#'
 #' @name methods-group-generic
 NULL
 
@@ -204,6 +203,9 @@ NULL
 #' @export
 Math.pdqr <- function(x, ...) {
   assert_gen_single_input(gen = .Generic, x)
+
+  # Speed optimization (skips possibly expensive assertions)
+  disable_asserting_locally()
 
   switch(
     .Generic,
@@ -219,6 +221,9 @@ Ops.pdqr <- function(e1, e2) {
   if (missing(e2)) {
     assert_gen_single_input(gen = .Generic, e1)
 
+    # Speed optimization (skips possibly expensive assertions)
+    disable_asserting_locally()
+
     switch(
       .Generic,
       `+` = e1,
@@ -232,7 +237,16 @@ Ops.pdqr <- function(e1, e2) {
       return(ops_logic(.Generic, e1, e2))
     }
 
-    e_list <- ensure_pdqr_functions(gen = .Generic, e1, e2)
+    e_list <- list(e1, e2)
+    assert_f_list(
+      f_list = e_list, allow_numbers = TRUE,
+      f_list_name = paste0("Input to `", .Generic, "()`")
+    )
+
+    # Speed optimization (skips possibly expensive assertions)
+    disable_asserting_locally()
+
+    e_list <- convert_numbers_to_pdqr_functions(e_list)
     e1 <- e_list[[1]]
     e2 <- e_list[[2]]
 
@@ -265,15 +279,33 @@ Summary.pdqr <- function(..., na.rm = FALSE) {
     )
   }
 
+  e_list <- list(...)
+  e_list_name <- paste0("Input to `", .Generic, "()`")
+
   if (.Generic %in% c("all", "any")) {
-    return(summary_allany(gen = .Generic, ...))
+    assert_f_list(
+      f_list = e_list, allow_numbers = FALSE,
+      f_list_name = e_list_name
+    )
+
+    return(summary_allany(gen = .Generic, e_list))
   }
 
-  dots <- ensure_pdqr_functions(gen = .Generic, ...)
+  assert_f_list(
+    f_list = e_list, allow_numbers = TRUE,
+    f_list_name = e_list_name
+  )
+
+  # Speed optimization (skips possibly expensive assertions)
+  disable_asserting_locally()
+
+  e_list <- convert_numbers_to_pdqr_functions(e_list)
 
   gen_fun <- function(...) {
     g <- get(.Generic)
-    f <- function(...) {g(..., na.rm = na.rm)}
+    f <- function(...) {
+      g(..., na.rm = na.rm)
+    }
 
     # `Map()` is needed to "vectorize" `Summary` generics
     unlist(Map(f, ...))
@@ -283,13 +315,13 @@ Summary.pdqr <- function(..., na.rm = FALSE) {
   args_new <- getOption("pdqr.group_gen.args_new")
 
   res <- form_trans(
-    dots, gen_fun, method = "random",
+    e_list, gen_fun, method = "random",
     n_sample = n_sample, args_new = args_new
   )
 
   # Ensure that `res` doesn't have values outside of reasonable support
   repair_group_gen_support(
-    res, .Generic, supp_list = lapply(dots, meta_support)
+    res, .Generic, supp_list = lapply(e_list, meta_support)
   )
 }
 
@@ -326,11 +358,18 @@ math_abs <- function(f) {
 }
 
 math_sign <- function(f) {
-  d_f <- as_d(f)
+  p_f <- as_p(f)
+
+  prob_zero <- if (meta_type(f) == "discrete") {
+    as_d(f)(0)
+  } else {
+    0
+  }
+  prob_leq_zero <- p_f(0)
 
   x_tbl <- data.frame(
-    x    = c(          -1,             0,            1),
-    prob = c((d_f < 0)(1), (d_f == 0)(1), (d_f > 0)(1))
+    x    = c(-1,                        0,         1),
+    prob = c(prob_leq_zero - prob_zero, prob_zero, 1 - prob_leq_zero)
   )
 
   new_pdqr_by_ref(f)(x_tbl, "discrete")
@@ -345,10 +384,14 @@ reflect_pdqr_around_zero <- function(f) {
 negate_pdqr <- function(f) {
   # Probability of type "continuous" pdqr-function being exactly 0 is equal to
   # zero
-  prob_zero <- if (meta_type(f) == "discrete") {as_d(f)(0)} else {0}
+  prob_zero <- if (meta_type(f) == "discrete") {
+    as_d(f)(0)
+  } else {
+    0
+  }
 
   new_pdqr_by_ref(f)(
-    data.frame(x = 0:1, prob = c(1-prob_zero, prob_zero)), "discrete"
+    data.frame(x = 0:1, prob = c(1 - prob_zero, prob_zero)), "discrete"
   )
 }
 
@@ -379,6 +422,9 @@ ops_linear <- function(gen, e1, e2) {
     ops_meta <- list(e1_num = meta_support(e1), e2_num = e2, pdqr = e1)
   }
 
+  # Speed optimization (skips possibly expensive assertions)
+  disable_asserting_locally()
+
   if ((gen == "-") && e1_is_number) {
     # This relies on custom implementations of `-` which takes one argument and
     # `+` which takes two arguments and goes into the next clause
@@ -400,6 +446,9 @@ ops_logic <- function(gen, e1, e2) {
     warning_boolean_pdqr_fun(f_name = paste0("One of `", gen, "` input"))
   }
 
+  # Speed optimization (skips possibly expensive assertions)
+  disable_asserting_locally()
+
   d_zero <- new_d(0, "discrete")
 
   prob_false_1 <- prob_equal(e1, d_zero)
@@ -409,8 +458,8 @@ ops_logic <- function(gen, e1, e2) {
 
   switch(
     gen,
-    `&` = boolean_pdqr((1-prob_false_1)*(1-prob_false_2), out_class),
-    `|` = boolean_pdqr(1 - prob_false_1*prob_false_2, out_class)
+    `&` = boolean_pdqr((1 - prob_false_1) * (1 - prob_false_2), out_class),
+    `|` = boolean_pdqr(1 - prob_false_1 * prob_false_2, out_class)
   )
 }
 
@@ -426,22 +475,21 @@ ops_compare <- function(gen, e1, e2) {
   )
 }
 
-summary_allany <- function(gen, ...) {
-  dots <- list(...)
-  all_pdqr <- all(vapply(dots, is_pdqr_fun, logical(1)))
-  if (!all_pdqr) {
-    stop_collapse("All input to `", gen, "()` should be pdqr-functions.")
-  }
-  any_non_boolean <- any(!vapply(dots, is_boolean_pdqr_fun, logical(1)))
+summary_allany <- function(gen, f_list) {
+  # It is assumed that all elements of `f_list` are pdqr-functions. Currently
+  # it should be pretested with `assert_f_list(f_list, allow_numbers = FALSE)`.
+  any_non_boolean <- any(!vapply(f_list, is_boolean_pdqr_fun, logical(1)))
   if (any_non_boolean) {
     warning_boolean_pdqr_fun(f_name = paste0("Some input to `", gen, "()`"))
   }
 
   d_zero <- new_d(0, "discrete")
 
-  prob_false <- vapply(dots, function(f) {prob_equal(f, d_zero)}, numeric(1))
+  prob_false <- vapply(f_list, function(f) {
+    prob_equal(f, d_zero)
+  }, numeric(1))
 
-  out_class <- meta_class(dots[[1]])
+  out_class <- meta_class(f_list[[1]])
 
   switch(
     gen,
@@ -450,27 +498,18 @@ summary_allany <- function(gen, ...) {
   )
 }
 
-ensure_pdqr_functions <- function(gen, ...) {
-  dots <- list(...)
-  gen_name <- enbacktick(gen)
+convert_numbers_to_pdqr_functions <- function(f_list) {
+  # Note that it is assumed that `f_list` contains only pdqr-functions or single
+  # numbers. Currently it should be pretested with
+  # `assert_f_list(f_list, allow_numbers = TRUE)`
+  f_class <- compute_f_list_meta(f_list)[["class"]]
 
-  is_pdqr <- vapply(dots, is_pdqr_fun, logical(1))
-  is_number <- vapply(dots, is_single_number, logical(1))
-
-  if (!all(is_pdqr | is_number)) {
-    stop_collapse(
-      "All inputs to ", gen_name, " should be pdqr-function or single number."
-    )
-  }
-
-  f_class <- compute_f_list_meta(dots)[["class"]]
-  res <- vector(mode = "list", length = length(dots))
-  res[is_pdqr] <- dots[is_pdqr]
-  res[is_number] <- lapply(
-    dots[is_number], new_pdqr_by_class(f_class), type = "discrete"
+  is_number <- vapply(f_list, is_single_number, logical(1))
+  f_list[is_number] <- lapply(
+    f_list[is_number], new_pdqr_by_class(f_class), type = "discrete"
   )
 
-  res
+  f_list
 }
 
 assert_gen_single_input <- function(gen, input) {
@@ -506,28 +545,36 @@ repair_group_gen_support <- function(f, gen, supp_list) {
     expm1    = expm1(supp_list[[1]]),
     log1p    = inf_to_na(log1p(supp_list[[1]])),
     cos      = repair_supp_periodic(
-      op = `cos`, supp = supp_list[[1]], ref_points = c(1, 2)*pi, period = 2*pi
+      op = `cos`,
+      supp = supp_list[[1]],
+      ref_points = c(1, 2) * pi,
+      period = 2 * pi
     ),
     sin      = repair_supp_periodic(
-      op = `sin`, supp = supp_list[[1]], ref_points = c(-1, 1)*0.5*pi,
-      period = 2*pi
+      op = `sin`,
+      supp = supp_list[[1]],
+      ref_points = c(-1, 1) * 0.5 * pi,
+      period = 2 * pi
     ),
     tan      = repair_supp_periodic(
       op = `tan`, supp = supp_list[[1]],
       # Inside nudges are needed to explicitly state side of special points
-      ref_points = c(-1, 1)*0.5*pi + 1e-15*c(1, -1),
+      ref_points = c(-1, 1) * 0.5 * pi + 1e-15 * c(1, -1),
       period = pi
     ),
     cospi    = repair_supp_periodic(
       op = `cospi`, supp = supp_list[[1]], ref_points = c(1, 2), period = 2
     ),
     sinpi    = repair_supp_periodic(
-      op = `sinpi`, supp = supp_list[[1]], ref_points = c(-1, 1)*0.5, period = 2
+      op = `sinpi`,
+      supp = supp_list[[1]],
+      ref_points = c(-1, 1) * 0.5,
+      period = 2
     ),
     tanpi    = repair_supp_periodic(
       op = `tanpi`, supp = supp_list[[1]],
       # Inside nudges are needed to explicitly state side of special points
-      ref_points = c(-1, 1)*0.5 + 1e-15*c(1, -1), period = 1
+      ref_points = c(-1, 1) * 0.5 + 1e-15 * c(1, -1), period = 1
     ),
     acos     = repair_supp_monotone(
       op = `acos`, supp = supp_list[[1]], input_bounds = c(-1, 1),
@@ -619,7 +666,7 @@ repair_supp_subtraction <- function(e1_supp, e2_supp) {
 repair_supp_multiplication <- function(e1_supp, e2_supp) {
   # Here `na.rm = TRUE` is needed to avoid `NaN`s in case `0*Inf` when called
   # inside `repair_supp_division()`
-  range(e1_supp[1]*e2_supp, e1_supp[2]*e2_supp, na.rm = TRUE)
+  range(e1_supp[1] * e2_supp, e1_supp[2] * e2_supp, na.rm = TRUE)
 }
 
 repair_supp_division <- function(e1_supp, e2_supp) {

@@ -2,10 +2,12 @@ abserror
 Acc
 args
 AUROC
+avgdist
 bruteforce
 cramer
 Cramer
 cumprob
+deterministically
 dirac
 discriminative
 distr
@@ -23,6 +25,7 @@ FP
 fpr
 FPR
 HDR
+hdrcde
 informedness
 iqr
 Jaccard
@@ -31,9 +34,11 @@ Leibler
 markedness
 Markedness
 MCC
+midrange
 minwidth
 nats
 NPV
+ORCID
 pdqr’
 piecelin
 PPV

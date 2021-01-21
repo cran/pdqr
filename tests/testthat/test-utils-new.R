@@ -75,12 +75,12 @@ test_that("is_pdqr_fun works", {
   expect_false(is_pdqr_fun(f_bad_support))
 
   # "x_tbl" metadata
-    # "x_tbl" is completely missing
+  ## "x_tbl" is completely missing
   f_no_x_tbl <- as_p(p_con)
   rm("x_tbl", envir = environment(f_no_x_tbl))
   expect_false(is_pdqr_fun(f_no_x_tbl))
 
-    # "x_tbl" has not proper structure
+  ## "x_tbl" has not proper structure
   f_bad_x_tbl <- as_p(p_dis)
   assign("x_tbl", "a", environment(f_bad_x_tbl))
   expect_false(is_pdqr_fun(f_bad_x_tbl))
@@ -95,28 +95,28 @@ test_that("is_pdqr_fun checks extra properties of 'x_tbl' metadata", {
   expect_false(is_pdqr_fun(f_bad_x_tbl_1))
 
   # "discrete" `type`
-    # Column "prob" is mandatory
+  ## Column "prob" is mandatory
   bad_x_tbl_2 <- x_dis_x_tbl
   bad_x_tbl_2[["prob"]] <- NULL
   f_bad_x_tbl_2 <- as_p(p_dis)
   assign("x_tbl", bad_x_tbl_2, environment(f_bad_x_tbl_2))
   expect_false(is_pdqr_fun(f_bad_x_tbl_2))
 
-    # Sum of "prob" is 1
+  ## Sum of "prob" is 1
   bad_x_tbl_3 <- x_dis_x_tbl
   bad_x_tbl_3[["prob"]] <- 10 * bad_x_tbl_3[["prob"]]
   f_bad_x_tbl_3 <- as_p(p_dis)
   assign("x_tbl", bad_x_tbl_3, environment(f_bad_x_tbl_3))
   expect_false(is_pdqr_fun(f_bad_x_tbl_3))
 
-    # Column "cumprob" is mandatory
+  ## Column "cumprob" is mandatory
   bad_x_tbl_4 <- x_dis_x_tbl
   bad_x_tbl_4[["cumprob"]] <- NULL
   f_bad_x_tbl_4 <- as_p(p_dis)
   assign("x_tbl", bad_x_tbl_4, environment(f_bad_x_tbl_4))
   expect_false(is_pdqr_fun(f_bad_x_tbl_4))
 
-    # Column "x" shouldn't have duplicate values
+  ## Column "x" shouldn't have duplicate values
   bad_x_tbl_5 <- x_dis_x_tbl
   bad_x_tbl_5[["x"]] <- 1
   f_bad_x_tbl_5 <- as_p(p_dis)
@@ -124,19 +124,25 @@ test_that("is_pdqr_fun checks extra properties of 'x_tbl' metadata", {
   expect_false(is_pdqr_fun(f_bad_x_tbl_5))
 
   # "continuous" type
-    # Total integral is 1
+  ## Total integral is 1
   bad_x_tbl_6 <- x_con_x_tbl
   bad_x_tbl_6[["y"]] <- 10 * bad_x_tbl_6[["y"]]
   f_bad_x_tbl_6 <- as_p(p_con)
   assign("x_tbl", bad_x_tbl_6, environment(f_bad_x_tbl_6))
   expect_false(is_pdqr_fun(f_bad_x_tbl_6))
 
-    # Column "cumprob" is mandatory
+  ## Column "cumprob" is mandatory
   bad_x_tbl_7 <- x_con_x_tbl
   bad_x_tbl_7[["cumprob"]] <- NULL
   f_bad_x_tbl_7 <- as_p(p_con)
   assign("x_tbl", bad_x_tbl_7, environment(f_bad_x_tbl_7))
   expect_false(is_pdqr_fun(f_bad_x_tbl_7))
+})
+
+test_that("is_pdqr_fun is not affected by 'pdqr.assert_args'", {
+  op <- options(pdqr.assert_args = FALSE)
+  on.exit(options(op))
+  expect_false(is_pdqr_fun("a"))
 })
 
 
@@ -147,6 +153,12 @@ test_that("is_pdqr_type works", {
 
   expect_false(is_pdqr_type(1))
   expect_false(is_pdqr_type(c("discrete", "continuous")))
+  expect_false(is_pdqr_type("a"))
+})
+
+test_that("is_pdqr_type is not affected by 'pdqr.assert_args'", {
+  op <- options(pdqr.assert_args = FALSE)
+  on.exit(options(op))
   expect_false(is_pdqr_type("a"))
 })
 
@@ -163,6 +175,12 @@ test_that("is_support works", {
   expect_false(is_support(c(-Inf, 1)))
   expect_false(is_support(c(-1, Inf)))
   expect_false(is_support(c(-Inf, Inf)))
+})
+
+test_that("is_support is not affected by 'pdqr.assert_args'", {
+  op <- options(pdqr.assert_args = FALSE)
+  on.exit(options(op))
+  expect_false(is_support("a"))
 })
 
 
@@ -227,6 +245,12 @@ test_that("is_x_tbl works with 'continuous' type", {
   expect_true(is_x_tbl(data.frame(y = c(1, 1), x = 1:2), type = "continuous"))
 })
 
+test_that("is_x_tbl is not affected by 'pdqr.assert_args'", {
+  op <- options(pdqr.assert_args = FALSE)
+  on.exit(options(op))
+  expect_false(is_x_tbl("a", "discrete"))
+})
+
 
 # is_x_tbl_meta -----------------------------------------------------------
 test_that("is_x_tbl_meta works", {
@@ -236,33 +260,33 @@ test_that("is_x_tbl_meta works", {
   expect_false(is_x_tbl_meta(input_bad_x_tbl_1, "discrete"))
 
   # "discrete" `type`
-    # Column "prob" is mandatory
+  ## Column "prob" is mandatory
   input_bad_x_tbl_2 <- x_dis_x_tbl
   input_bad_x_tbl_2[["prob"]] <- NULL
   expect_false(is_x_tbl_meta(input_bad_x_tbl_2, "discrete"))
 
-    # Sum of "prob" is 1
+  ## Sum of "prob" is 1
   input_bad_x_tbl_3 <- x_dis_x_tbl
   input_bad_x_tbl_3[["prob"]] <- 10 * input_bad_x_tbl_3[["prob"]]
   expect_false(is_x_tbl_meta(input_bad_x_tbl_3, "discrete"))
 
-    # Column "cumprob" is mandatory
+  ## Column "cumprob" is mandatory
   input_bad_x_tbl_4 <- x_dis_x_tbl
   input_bad_x_tbl_4[["cumprob"]] <- NULL
   expect_false(is_x_tbl_meta(input_bad_x_tbl_4, "discrete"))
 
-    # Column "x" shouldn't have duplicate values
+  ## Column "x" shouldn't have duplicate values
   input_bad_x_tbl_5 <- x_dis_x_tbl
   input_bad_x_tbl_5[["x"]] <- 1
   expect_false(is_pdqr_fun(input_bad_x_tbl_5))
 
   # "continuous" type
-    # Total integral is 1
+  ## Total integral is 1
   input_bad_x_tbl_6 <- x_con_x_tbl
   input_bad_x_tbl_6[["y"]] <- 10 * input_bad_x_tbl_6[["y"]]
   expect_false(is_x_tbl_meta(input_bad_x_tbl_6, "continuous"))
 
-    # Column "cumprob" is mandatory
+  ## Column "cumprob" is mandatory
   input_bad_x_tbl_7 <- x_con_x_tbl
   input_bad_x_tbl_7[["cumprob"]] <- NULL
   expect_false(is_x_tbl_meta(input_bad_x_tbl_7, "continuous"))

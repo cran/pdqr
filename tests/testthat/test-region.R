@@ -8,6 +8,48 @@ library(grDevices)
 # function.
 
 
+# Input data --------------------------------------------------------------
+region_dis_1 <- data.frame(left = c(0, 0.5, 1), right = c(0, 0.5, 1))
+region_dis_2 <- data.frame(left = c(0, 0.75, 1), right = c(0, 0.75, 1))
+region_con_1 <- data.frame(left = c(0, 2), right = c(1, 3))
+region_con_2 <- data.frame(left = c(0.5, 2.5), right = c(1.5, 3.5))
+region_mix <- data.frame(left = c(0, 0.5), right = c(0, 1))
+region_mix_as_con <- data.frame(left = 0.5, right = 1)
+
+region_dis_1_pdqr <- region_as_pdqr(region_dis_1)
+region_dis_2_pdqr <- region_as_pdqr(region_dis_2)
+region_con_1_pdqr <- region_as_pdqr(region_con_1)
+region_con_2_pdqr <- region_as_pdqr(region_con_2)
+region_mix_pdqr <- region_as_pdqr(region_mix)
+
+
+# Custom expectations -----------------------------------------------------
+expect_region_distance_other_methods <- function(region, region2) {
+  region_pdqr <- region_as_pdqr(region)
+  region2_pdqr <- region_as_pdqr(region2)
+
+  is_other_method <- !(methods_distance %in% c("avgdist", "entropy"))
+  for (meth in methods_distance[is_other_method]) {
+    expect_equal(
+      region_distance(region, region2, method = meth),
+      summ_distance(region_pdqr, region2_pdqr, method = meth)
+    )
+  }
+
+  if (meta_type(region_pdqr) != meta_type(region2_pdqr)) {
+    expect_error(
+      region_distance(region, region2, method = "entropy"),
+      '"entropy".*same type'
+    )
+  } else {
+    expect_equal(
+      region_distance(region, region2, method = "entropy"),
+      summ_distance(region_pdqr, region2_pdqr, method = "entropy")
+    )
+  }
+}
+
+
 # region_is_in ------------------------------------------------------------
 test_that("region_is_in works", {
   region_1 <- data.frame(left = 1:2, right = 1:2 + 0.5)
@@ -98,7 +140,7 @@ test_that("region_is_in validates input", {
 
 # region_prob -------------------------------------------------------------
 test_that("region_prob works with 'discrete' functions", {
-  cur_d <- new_d(data.frame(x = 1:4, prob = 1:4/10), "discrete")
+  cur_d <- new_d(data.frame(x = 1:4, prob = 1:4 / 10), "discrete")
 
   region_1 <- data.frame(left = c(1, 3) - 0.25, right = c(1, 3) + 0.25)
   expect_equal(region_prob(region_1, cur_d), 0.1 + 0.3)
@@ -272,7 +314,7 @@ test_that("region_prob validates input", {
 
 # region_height -----------------------------------------------------------
 test_that("region_height works with 'discrete' functions", {
-  cur_d <- new_d(data.frame(x = 1:4, prob = 1:4/10), "discrete")
+  cur_d <- new_d(data.frame(x = 1:4, prob = 1:4 / 10), "discrete")
 
   region_1 <- data.frame(left = c(1, 3) - 0.25, right = c(1, 3) + 0.25)
   expect_equal(region_height(region_1, cur_d), 0.1)
@@ -351,7 +393,7 @@ test_that("region_height works with 'discrete' functions", {
 })
 
 test_that("region_height works with 'continuous' functions", {
-  cur_d <- new_d(data.frame(x = 1:5, y = c(0, 2, 1, 2, 0)/5), "continuous")
+  cur_d <- new_d(data.frame(x = 1:5, y = c(0, 2, 1, 2, 0) / 5), "continuous")
 
   expect_equal(
     region_height(data.frame(left = 1.5, right = 2.5), cur_d), cur_d(1.5)
@@ -439,6 +481,125 @@ test_that("region_width validates input", {
 })
 
 
+# region_distance ---------------------------------------------------------
+test_that("region_distance works with 'Jaccard' method", {
+  # "Discrete" regions
+  # If both inputs are purely "discrete" regions, widths of intersection and
+  # union are zero, so output is `NaN`.
+  expect_equal(
+    region_distance(region_dis_1, region_dis_2, method = "Jaccard"), NaN
+  )
+  # If only one input is purely "discrete", then width of intersection is zero,
+  # but width of union is not zero, so output is 1-0.
+  expect_equal(
+    region_distance(region_dis_1, region_con_2, method = "Jaccard"), 1
+  )
+  expect_equal(
+    region_distance(region_con_1, region_dis_2, method = "Jaccard"), 1
+  )
+
+  # "Continuous" regions
+  expect_equal(
+    region_distance(region_con_1, region_con_2, method = "Jaccard"), 1 - 1 / 3
+  )
+  expect_equal(
+    region_distance(region_con_1, region_con_1, method = "Jaccard"), 0
+  )
+  # Case of consecutive intervals in region
+  expect_equal(
+    region_distance(
+      data.frame(left = c(0, 1),     right = c(1, 2)),
+      data.frame(left = c(0, 1) + 0.5, right = c(1, 2) + 0.5),
+      method = "Jaccard"
+    ),
+    1 - 1.5 / 2.5
+  )
+
+  # "Mixed" regions
+  expect_equal(
+    region_distance(region_dis_1, region_mix, method = "Jaccard"),
+    region_distance(region_dis_1, region_mix_as_con, method = "Jaccard")
+  )
+  expect_equal(
+    region_distance(region_con_1, region_mix, method = "Jaccard"),
+    region_distance(region_con_1, region_mix_as_con, method = "Jaccard")
+  )
+})
+
+test_that("region_distance works with 'avgdist' method", {
+  # Output for "avgdist" method should be equivalent to when treating regions
+  # as distributions and applying `summ_distance(*, method = "avgdist")` (but
+  # more accurate for "continuous" case).
+
+  # "Discrete" regions
+  expect_equal(
+    region_distance(region_dis_1, region_dis_2, method = "avgdist"),
+    summ_distance(region_dis_1_pdqr, region_dis_2_pdqr, method = "avgdist")
+  )
+  expect_equal(
+    region_distance(region_dis_1, region_con_2, method = "avgdist"),
+    summ_distance(region_dis_1_pdqr, region_con_2_pdqr, method = "avgdist"),
+    tol = 1e-6
+  )
+  expect_equal(
+    region_distance(region_con_1, region_dis_2, method = "avgdist"),
+    summ_distance(region_con_1_pdqr, region_dis_2_pdqr, method = "avgdist"),
+    tol = 1e-6
+  )
+
+  # "Continuous" regions
+  expect_equal(
+    region_distance(region_con_1, region_con_2, method = "avgdist"),
+    summ_distance(region_con_1_pdqr, region_con_2_pdqr, method = "avgdist"),
+    tol = 1e-6
+  )
+
+  # "Mixed" regions
+  expect_equal(
+    region_distance(region_dis_1, region_mix, method = "avgdist"),
+    summ_distance(region_dis_1_pdqr, region_mix_pdqr, method = "avgdist")
+  )
+  expect_equal(
+    region_distance(region_con_1, region_mix, method = "avgdist"),
+    summ_distance(region_con_1_pdqr, region_mix_pdqr, method = "avgdist"),
+    tol = 1e-6
+  )
+})
+
+test_that("region_distance works with the rest of `summ_distance()` methods", {
+  # "Discrete" regions
+  expect_region_distance_other_methods(region_dis_1, region_dis_2)
+  expect_region_distance_other_methods(region_dis_1, region_con_2)
+
+  # "Continuous" regions
+  expect_region_distance_other_methods(region_con_1, region_con_2)
+
+  # "Mixed" regions
+  expect_region_distance_other_methods(region_dis_1, region_mix)
+  expect_region_distance_other_methods(region_con_1, region_mix)
+})
+
+test_that("region_distance validates input", {
+  region <- data.frame(left = c(0, 2), right = c(1, 3))
+  region2 <- data.frame(left = c(0, 2) + 0.5, right = c(1, 3) + 0.5)
+
+  expect_error(region_distance(list(0:1, 1:2), region2), "`region`")
+  expect_error(region_distance(region, list(0:1, 1:2)), "`region2`")
+  expect_error(region_distance(region, region2, method = 1), "`method`.*string")
+  expect_error(
+    region_distance(region, region2, method = "a"), "`method`.*one of"
+  )
+})
+
+
+# region_distance_jaccard -------------------------------------------------
+# Tested in `region_distance()`
+
+
+# region_distance_avgdist -------------------------------------------------
+# Tested in `region_distance()`
+
+
 # region_draw -------------------------------------------------------------
 test_that("region_draw works", {
   cur_d <- new_d(data.frame(x = 1:11, y = c(0, rep(c(1, 0), 5))), "continuous")
@@ -449,7 +610,7 @@ test_that("region_draw works", {
 
   # Basic usage. Also if `region_draw()` is implemented with
   # `rect(*, ytop = 2e8, *)`, will give incorrect output
-  vdiffr::expect_doppelganger(
+  expect_doppelganger_2(
     "region_draw-basic", recordPlot({
       plot(cur_d)
       region_draw(region)
@@ -457,13 +618,13 @@ test_that("region_draw works", {
   )
 
   # Setting different color
-  vdiffr::expect_doppelganger(
+  expect_doppelganger_2(
     "region_draw-col-1", recordPlot({
       plot(cur_d)
       region_draw(region, col = "green")
     })
   )
-  vdiffr::expect_doppelganger(
+  expect_doppelganger_2(
     "region_draw-col-2", recordPlot({
       plot(cur_d)
       region_draw(region, col = "#FF0000")
@@ -471,7 +632,7 @@ test_that("region_draw works", {
   )
 
   # Setting different `alpha`
-  vdiffr::expect_doppelganger(
+  expect_doppelganger_2(
     "region_draw-alpha", recordPlot({
       plot(cur_d)
       region_draw(region, alpha = 0.7)
@@ -507,7 +668,7 @@ test_that("region_new works", {
 test_that("assert_region works", {
   expect_silent(assert_region(data.frame(left = 1, right = 1)))
   expect_silent(assert_region(data.frame(left = 1:2, right = 1:2)))
-  expect_silent(assert_region(data.frame(left = 1:2, right = 1:2+0.5)))
+  expect_silent(assert_region(data.frame(left = 1:2, right = 1:2 + 0.5)))
   expect_silent(assert_region(data.frame(left = 1:2, right = 1:2, c = -1:0)))
 
   input <- "a"
@@ -520,7 +681,7 @@ test_that("assert_region works", {
     'have.*numeric.*"left"'
   )
   expect_error(
-    assert_region(data.frame(left = c(-Inf, 2), right = 2:3)), 'finite'
+    assert_region(data.frame(left = c(-Inf, 2), right = 2:3)), "finite"
   )
   expect_error(assert_region(data.frame(left = 1:2)), 'have.*column.*"right"')
   expect_error(
@@ -528,7 +689,7 @@ test_that("assert_region works", {
     'have.*numeric.*"right"'
   )
   expect_error(
-    assert_region(data.frame(left = 1:2, right = c(2, Inf))), 'finite'
+    assert_region(data.frame(left = 1:2, right = c(2, Inf))), "finite"
   )
 
   expect_error(assert_region(data.frame(left = 1, right = -1)), "All.*not less")
@@ -577,4 +738,44 @@ test_that("is_region_ordered works", {
   expect_false(
     is_region_ordered(data.frame(left = c(1, 2, -1), right = c(1.5, 2.5, 3)))
   )
+})
+
+
+# region_as_pdqr ----------------------------------------------------------
+test_that("region_as_pdqr works with 'all-continuous' region", {
+  region <- data.frame(left = c(1, 3), right = c(1.5, 8))
+
+  out <- region_as_pdqr(region)
+  out_ref <- form_mix(
+    f_list = list(
+      new_d(data.frame(x = c(1, 1.5), y = c(1, 1)), "continuous"),
+      new_d(data.frame(x = c(3, 8), y = c(1, 1)), "continuous")
+    ),
+    weights = c(0.5, 5) / 5.5
+  )
+  expect_equal(meta_x_tbl(out), meta_x_tbl(out_ref))
+})
+
+test_that("region_as_pdqr works with 'all-discrete' region", {
+  x <- sort(runif(10))
+  region <- data.frame(left = x, right = x)
+
+  out <- region_as_pdqr(region)
+  out_ref <- new_d(x, "discrete")
+  expect_equal(meta_x_tbl(out), meta_x_tbl(out_ref))
+})
+
+test_that("region_as_pdqr works with 'mixed-type' region", {
+  region <- data.frame(left = c(1, 2, 3, 10), right = c(1.5, 2, 8, 10))
+
+  out <- region_as_pdqr(region)
+  # Only intervals with positive lengths are used
+  out_ref <- form_mix(
+    f_list = list(
+      new_d(data.frame(x = c(1, 1.5), y = c(1, 1)), "continuous"),
+      new_d(data.frame(x = c(3, 8), y = c(1, 1)), "continuous")
+    ),
+    weights = c(0.5, 5) / 5.5
+  )
+  expect_equal(meta_x_tbl(out), meta_x_tbl(out_ref))
 })

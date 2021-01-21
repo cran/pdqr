@@ -23,7 +23,9 @@
 #' assert_type(x, is.logical)
 #' assert_type(
 #'   x,
-#'   function(x) {is.character(x) && (length(x) == 1)},
+#'   function(x) {
+#'     is.character(x) && (length(x) == 1)
+#'   },
 #'   "character of length 1"
 #' )
 #' }
@@ -206,7 +208,7 @@ assert_pdqr_fun <- function(f, f_name = NULL) {
   if (!has_meta_support(f)) {
     stop_collapse(
       err_header, 'It should have proper "support" metadata (numeric vector ',
-      'of length 2 with non-decreasing finite elements).'
+      "of length 2 with non-decreasing finite elements)."
     )
   }
 
@@ -320,8 +322,8 @@ assert_x_tbl_con <- function(x_tbl, x_tbl_name, err_header = "") {
 
   if (anyDuplicated(x_tbl[["x"]]) != 0) {
     stop_collapse(
-      err_header, '"x" column in ', x_tbl_name, ' should not have duplicate ",
-      "values.'
+      err_header, '"x" column in ', x_tbl_name, " should not have duplicate ",
+      "values."
     )
   }
 
@@ -329,14 +331,14 @@ assert_x_tbl_con <- function(x_tbl, x_tbl_name, err_header = "") {
 
   if (any(x_tbl[["y"]] < 0)) {
     stop_collapse(
-      err_header, '"y" column in ', x_tbl_name, ' should not have negative ",
-      "values.'
+      err_header, '"y" column in ', x_tbl_name, " should not have negative ",
+      "values."
     )
   }
   if (!any(x_tbl[["y"]] > 0)) {
     stop_collapse(
-      err_header, '"y" column in ', x_tbl_name, ' should have at least one ",
-      "positive value.'
+      err_header, '"y" column in ', x_tbl_name, " should have at least one ",
+      "positive value."
     )
   }
 
@@ -371,7 +373,7 @@ assert_x_tbl_meta <- function(x_tbl, type, err_header = "") {
     if (anyDuplicated(x_tbl[["x"]]) != 0) {
       stop_collapse(
         err_header, '"x" column in "x_tbl" metadata should not have duplicate ',
-        'values.'
+        "values."
       )
     }
   }
@@ -410,6 +412,19 @@ assert_num_col <- function(vec, col_name, x_tbl_name, err_header = "") {
   TRUE
 }
 
+assert_method <- function(method, choices) {
+  if (dont_assert()) {
+    return(TRUE)
+  }
+
+  method_name <- deparse(substitute(method))
+
+  assert_type(method, is_string, x_name = method_name)
+  assert_in_set(method, choices, x_name = method_name)
+
+  TRUE
+}
+
 
 # Warnings for pdqr-functions ---------------------------------------------
 warning_boolean_pdqr_fun <- function(f = NULL, f_name = NULL) {
@@ -419,7 +434,7 @@ warning_boolean_pdqr_fun <- function(f = NULL, f_name = NULL) {
 
   warning_collapse(
     f_name, ' is not a "boolean" pdqr-function (type "discrete" with "x" ',
-    'values equal to 0 and 1). Proceed with caution.'
+    "values equal to 0 and 1). Proceed with caution."
   )
 }
 

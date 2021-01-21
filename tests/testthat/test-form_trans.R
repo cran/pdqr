@@ -4,7 +4,9 @@ set.seed(7777)
 
 
 # Input data --------------------------------------------------------------
-sq <- function(x) {x * x}
+sq <- function(x) {
+  x * x
+}
 
 # Analytical form of random variable `X^2`
 p_custom_ref <- structure(
@@ -51,25 +53,29 @@ test_that("form_trans works with `method = 'random'`", {
 
 test_that("form_trans works with `method = 'bruteforce'`", {
   # Output type "discrete"
-    # Single input
-  add_one <- function(x) {x + 1}
+  ## Single input
+  add_one <- function(x) {
+    x + 1
+  }
   cur_dis <- new_d(data.frame(x = 0:2, prob = c(0.1, 0.2, 0.7)), "discrete")
   expect_ref_x_tbl(
     form_trans(list(cur_dis), add_one, method = "bruteforce"),
     data.frame(x = 1:3, prob = c(0.1, 0.2, 0.7))
   )
 
-    # Multiple input
+  ## Multiple input
   cur_dis_2 <- new_p(data.frame(x = 1:2, prob = c(0.4, 0.6)), "discrete")
   expect_ref_x_tbl(
     form_trans(list(cur_dis, cur_dis_2), `+`, method = "bruteforce"),
     data.frame(
-      x =    c(      1,               2,               3,       4),
-      prob = c(0.1*0.4, 0.1*0.6+0.2*0.4, 0.2*0.6+0.7*0.4, 0.7*0.6)
+      x    = c(1,         2,                     3,
+        4),
+      prob = c(0.1 * 0.4, 0.1 * 0.6 + 0.2 * 0.4, 0.2 * 0.6 + 0.7 * 0.4,
+        0.7 * 0.6)
     )
   )
 
-    # Output of `trans` is logical
+  ## Output of `trans` is logical
   d_geq <- form_trans(list(0, d_con), `>=`, method = "bruteforce")
   expect_true(abs(d_geq(1) - p_con(0)) <= 5e-3)
 
@@ -77,7 +83,7 @@ test_that("form_trans works with `method = 'bruteforce'`", {
   output <- form_trans(list(d_con, 1), `+`, method = "bruteforce")
   expect_distr_fun(output, "d", "continuous")
   output_support <- meta_support(output)
-  expect_true(all(abs(output_support - (x_con_support+1)) < 1e-3))
+  expect_true(all(abs(output_support - (x_con_support + 1)) < 1e-3))
 })
 
 test_that("form_trans returns boolean pdqr-function for 'lgl' `trans` output", {
@@ -170,7 +176,9 @@ test_that("form_trans produces correct 'pdqr' type", {
 })
 
 test_that("form_trans throws error if `trans` produces bad output",  {
-  bad_trans <- function(x) {rep("a", length(x))}
+  bad_trans <- function(x) {
+    rep("a", length(x))
+  }
   expect_error(
     form_trans(list(p_dis), bad_trans, method = "random"),
     "transformation.*numeric.*logical"
@@ -182,7 +190,9 @@ test_that("form_trans throws error if `trans` produces bad output",  {
 })
 
 test_that("form_trans uses `...` as `trans` arguments",  {
-  adder <- function(x, y) {x + y}
+  adder <- function(x, y) {
+    x + y
+  }
 
   output_random <- form_trans(list(p_dis), adder, y = 100, method = "random")
   expect_true(meta_support(p_dis)[1] == meta_support(output_random)[1] - 100)
@@ -210,23 +220,27 @@ test_that("form_trans uses `args_new` as arguments for `new_*()`",  {
   expect_equal(nrow(meta_x_tbl(output)), 3)
 
   # Currently there is no effect in using `args_new` in case `method =
-  # "bruteforce"` because in computes data frame input for `new_*()` functions,
+  # "bruteforce"` because it computes data frame input for `new_*()` functions,
   # in which case extra arguments are currently not used. However, `args_new`
   # are passed to `new_*()` in the code.
-  expect_equal(
+  expect_equal_meta(
     form_trans(list(p_dis), sq, method = "bruteforce", args_new = list(n = 3)),
     form_trans(list(p_dis), sq, method = "bruteforce")
   )
 
   # Supplying `x` or `type` doesn't affect the output
-  expect_equal(
-    form_trans(
-      list(p_con), sq, method = "random",
-      args_new = list(x = 1, type = "discrete")
-    ),
-    form_trans(list(p_con), sq, method = "random")
+  set.seed(101)
+  f <- form_trans(
+    list(p_con),
+    sq,
+    method = "random",
+    args_new = list(x = 1, type = "discrete")
   )
-  expect_equal(
+  set.seed(101)
+  g <- form_trans(list(p_con), sq, method = "random")
+  expect_equal_meta(f, g)
+
+  expect_equal_meta(
     form_trans(
       list(p_dis), sq, method = "bruteforce",
       args_new = list(x = 1, type = "continuous")
@@ -261,8 +275,8 @@ test_that("form_trans validates input", {
 # This is a thin wrapper for `form_trans()` so main tests are done in
 # `form_trans()`
 test_that("form_trans_self works",  {
-  expect_equal(
-    form_trans_self(p_dis, sq),
+  expect_equal_meta(
+    form_trans_self(p_dis, sq, method = "bruteforce"),
     form_trans(list(p_dis), sq, method = "bruteforce")
   )
 

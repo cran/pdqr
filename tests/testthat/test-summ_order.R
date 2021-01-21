@@ -5,16 +5,18 @@ context("test-summ_order")
 test_that("summ_order works", {
   # General case
   mean_vec <- runif(4)
-  f_list <- lapply(mean_vec, function(m) {as_d(dnorm, mean = m)})
+  f_list <- lapply(mean_vec, function(m) {
+    as_d(dnorm, mean = m)
+  })
   ref_order <- order(mean_vec)
 
-  for (meth in c("compare", "mean", "median", "mode")) {
+  for (meth in methods_order) {
     expect_equal(summ_order(f_list, method = meth), ref_order)
   }
 
   # Works with different types
   f_list <- list(as_d(dnorm), new_d(1:10, "discrete"))
-  for (meth in c("compare", "mean", "median", "mode")) {
+  for (meth in methods_order) {
     expect_equal(summ_order(f_list, method = meth), 1:2)
   }
 })
@@ -37,8 +39,8 @@ test_that("summ_order works with method 'compare'", {
     new_d(data.frame(x = c(0.05, 0.3, 0.70), y = c(4, 0, 4)), "continuous"),
     new_d(data.frame(x = c(0.03, 0.40, 0.80), y = c(1, 1, 1)), "continuous")
   )
-    # One important feature here should be independence of output ordering
-    # from order of input, i.e. eventual sorting should be the same
+  ## One important feature here should be independence of output ordering
+  ## from order of input, i.e. eventual sorting should be the same
   expect_equal(
     summ_order(non_trans_list, method = "compare"),
     summ_order(non_trans_list[c(2, 3, 1)])[c(2, 3, 1)]
@@ -66,9 +68,15 @@ test_that("summ_order works with methods from `summ_center()`", {
     as_d(dlnorm, meanlog = m[i], sdlog = s[i])
   })
 
-  expect_equal(summ_order(f_list, method = "mean"), order(exp(m + 0.5*s^2)))
+  expect_equal(summ_order(f_list, method = "mean"), order(exp(m + 0.5 * s^2)))
   expect_equal(summ_order(f_list, method = "median"), order(exp(m)))
   expect_equal(summ_order(f_list, method = "mode"), order(exp(m - s^2)))
+  expect_equal(
+    summ_order(f_list, method = "midrange"),
+    order(vapply(f_list, function(f) {
+      0.5 * sum(meta_support(f))
+    }, numeric(1)))
+  )
 })
 
 test_that("summ_order uses `decreasing` argument", {
@@ -98,7 +106,9 @@ test_that("summ_order works with different pdqr classes", {
 test_that("summ_order validates input", {
   expect_error(summ_order("a"), "`f_list`.*list")
   expect_error(summ_order(list()), "`f_list`.*empty")
-  expect_error(summ_order(list(function(x) {x})), "`f_list`.*pdqr")
+  expect_error(summ_order(list(function(x) {
+    x
+  })), "`f_list`.*pdqr")
   expect_error(summ_order(list(d_dis), method = 1), "`method`.*string")
   expect_error(summ_order(list(d_dis), method = "a"), "`method`.*one of")
 })
@@ -109,17 +119,19 @@ test_that("summ_order validates input", {
 test_that("summ_sort works", {
   # General case
   mean_vec <- runif(4)
-  f_list <- lapply(mean_vec, function(m) {as_d(dnorm, mean = m)})
+  f_list <- lapply(mean_vec, function(m) {
+    as_d(dnorm, mean = m)
+  })
   ref_list <- f_list[order(mean_vec)]
 
-  for (meth in c("compare", "mean", "median", "mode")) {
+  for (meth in methods_order) {
     expect_equal(summ_sort(f_list, method = meth), ref_list)
   }
 
   # Works with different types
   f_list <- list(as_d(dnorm), new_d(1:10, "discrete"))
   ref_list <- f_list
-  for (meth in c("compare", "mean", "median", "mode")) {
+  for (meth in methods_order) {
     expect_equal(summ_sort(f_list, method = meth), ref_list)
   }
 })
@@ -140,7 +152,9 @@ test_that("summ_sort uses `decreasing` argument", {
 test_that("summ_sort validates input", {
   expect_error(summ_sort("a"), "`f_list`.*list")
   expect_error(summ_sort(list()), "`f_list`.*empty")
-  expect_error(summ_sort(list(function(x) {x})), "`f_list`.*pdqr")
+  expect_error(summ_sort(list(function(x) {
+    x
+  })), "`f_list`.*pdqr")
   expect_error(summ_sort(list(d_dis), method = 1), "`method`.*string")
   expect_error(summ_sort(list(d_dis), method = "a"), "`method`.*one of")
 })
@@ -151,16 +165,18 @@ test_that("summ_sort validates input", {
 test_that("summ_rank works", {
   # General case
   mean_vec <- runif(4)
-  f_list <- lapply(mean_vec, function(m) {as_d(dnorm, mean = m)})
+  f_list <- lapply(mean_vec, function(m) {
+    as_d(dnorm, mean = m)
+  })
   ref_rank <- rank(mean_vec)
 
-  for (meth in c("compare", "mean", "median", "mode")) {
+  for (meth in methods_order) {
     expect_equal(summ_rank(f_list, method = meth), ref_rank)
   }
 
   # Works with different types
   f_list <- list(as_d(dnorm), new_d(1:10, "discrete"))
-  for (meth in c("compare", "mean", "median", "mode")) {
+  for (meth in methods_order) {
     expect_equal(summ_rank(f_list, method = meth), 1:2)
   }
 })
@@ -173,7 +189,9 @@ test_that("summ_rank preserves names", {
 test_that("summ_rank validates input", {
   expect_error(summ_rank("a"), "`f_list`.*list")
   expect_error(summ_rank(list()), "`f_list`.*empty")
-  expect_error(summ_rank(list(function(x) {x})), "`f_list`.*pdqr")
+  expect_error(summ_rank(list(function(x) {
+    x
+  })), "`f_list`.*pdqr")
   expect_error(summ_rank(list(d_dis), method = 1), "`method`.*string")
   expect_error(summ_rank(list(d_dis), method = "a"), "`method`.*one of")
 })

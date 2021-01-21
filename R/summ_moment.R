@@ -43,7 +43,6 @@
 #' # Return the same number representing non-excess kurtosis
 #' summ_moment(d_beta, order = 4, central = TRUE, standard = TRUE)
 #' summ_kurtosis(d_beta, excess = FALSE)
-#'
 #' @name summ_moment
 NULL
 
@@ -60,6 +59,9 @@ summ_moment <- function(f, order, central = FALSE, standard = FALSE,
   assert_type(central, is_truefalse, "`TRUE` or `FALSE`")
   assert_type(absolute, is_truefalse, "`TRUE` or `FALSE`")
   assert_type(standard, is_truefalse, "`TRUE` or `FALSE`")
+
+  # Speed optimization (skips possibly expensive assertions)
+  disable_asserting_locally()
 
   if (central) {
     f <- f - summ_mean(f)

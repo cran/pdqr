@@ -1,5 +1,5 @@
 # General predicates ------------------------------------------------------
-is_near <- function (x, y, tol = 10^(-8)) {
+is_near <- function(x, y, tol = 10^(-8)) {
   abs(x - y) < tol
 }
 
@@ -12,20 +12,30 @@ is_string <- function(x) {
 }
 
 is_single_color <- function(x) {
-    tryCatch(
-      {
-        col <- grDevices::col2rgb(x)
+  tryCatch(
+    {
+      col <- grDevices::col2rgb(x)
 
-        is.matrix(col) && (ncol(col) == 1)
-      },
-      error = function(e) {FALSE}
-    )
+      is.matrix(col) && (ncol(col) == 1)
+    },
+    error = function(e) {
+      FALSE
+    }
+  )
 }
 
 is_single_number <- function(x, min_val = NULL, max_val = NULL) {
   res <- is.numeric(x) && (length(x) == 1) && is.finite(x)
-  is_geq <- if (is.null(min_val)) {TRUE} else {x >= min_val}
-  is_leq <- if (is.null(max_val)) {TRUE} else {x <= max_val}
+  is_geq <- if (is.null(min_val)) {
+    TRUE
+  } else {
+    x >= min_val
+  }
+  is_leq <- if (is.null(max_val)) {
+    TRUE
+  } else {
+    x <= max_val
+  }
 
   res && is_geq && is_leq
 }
@@ -48,7 +58,11 @@ neigh_dist <- function(vec, neigh_type = "min", def_dist = NULL) {
   vec_sorted <- vec[vec_ord]
 
   if (is.null(def_dist)) {
-    def_dist <- if (neigh_type == "min") {Inf} else {-Inf}
+    def_dist <- if (neigh_type == "min") {
+      Inf
+    } else {
+      -Inf
+    }
   }
 
   diff_vec <- diff(vec_sorted)
@@ -194,7 +208,7 @@ seq_between <- function(seq_range, ...) {
 }
 
 dotprod <- function(x, y) {
-  sum(x*y, na.rm = TRUE)
+  sum(x * y, na.rm = TRUE)
 }
 
 coalesce_pair <- function(x, y) {
@@ -248,6 +262,20 @@ alternate <- function(x, y) {
   comb[inds]
 }
 
+to_weights <- function(x) {
+  if (!is.numeric(x) || !all(x >= 0)) {
+    stop_collapse("All input to `to_weights()` should be positive numbers.")
+  }
+
+  x_sum <- sum(x, na.rm = TRUE)
+
+  if (x_sum > 0) {
+    x / x_sum
+  } else {
+    rep(1, length(x)) / length(x)
+  }
+}
+
 
 # List manipulations ------------------------------------------------------
 c_dedupl <- function(...) {
@@ -292,7 +320,7 @@ copy_attrs <- function(to, from) {
 }
 
 
-# Distance functions ------------------------------------------------------
+# Compute neighbors -------------------------------------------------------
 find_nearest_ind <- function(x, set) {
   # Returns `length(x)` **indicies of `set`** which are closest to respective
   # `x` elements.
@@ -334,7 +362,7 @@ find_nearest_match <- function(x, set) {
   # in very long distances between actual matches. That is why output should be
   # viewed as an unordered set of unique indicies of `set` that are "closest" to
   # `x`.
-  while(length(x_to_match) > 0) {
+  while (length(x_to_match) > 0) {
     # Match "current" `x` and `set`
     x_matches <- find_nearest_ind(x[x_to_match], set[set_to_match])
 
@@ -467,7 +495,6 @@ capture_null <- function(x) {
 #'   d_beta, dbeta, shape1 = 0.3, shape2 = 0.7, remove_infinity = FALSE
 #' )
 #' summary(error_beta_2)
-#'
 #' @export
 pdqr_approx_error <- function(f, ref_f, ..., gran = 10,
                               remove_infinity = TRUE) {
@@ -519,7 +546,7 @@ granulate_grid <- function(f, gran) {
   step <- (vec[-1] - vec[-n]) / gran
 
   res <- rep(vec[-n], each = gran) +
-    rep(step, each = gran) * rep(0:(gran-1), times = n-1)
+    rep(step, each = gran) * rep(0:(gran - 1), times = n - 1)
 
   # Add missing last element
   c(res, vec[n])
@@ -598,10 +625,9 @@ granulate_grid <- function(f, gran) {
 #'
 #' # Manual way with different output structure
 #' df <- meta_x_tbl(form_regrid(d_norm, 5))
-#'   # Difference in values due to `form_regrid()` renormalization
+#' ## Difference in values due to `form_regrid()` renormalization
 #' plot(enpoint(d_norm, 5), type = "l")
 #' lines(df[["x"]], df[["y"]], col = "blue")
-#'
 #' @export
 enpoint <- function(f, n_points = 1001) {
   assert_pdqr_fun(f)
@@ -658,4 +684,79 @@ enpoint_q <- function(f, n_points) {
 
 enpoint_r <- function(f, n_points) {
   data.frame(n = seq_len(n_points), x = f(n_points))
+}
+
+
+# Distance between two uniform distributions ------------------------------
+# E[|X - Y|], where X ~ U(a, b) and Y ~ U(c, d). Here `a <= b` and `c <= d`
+# should be both true, and support of distribution can be single point.
+# **Note** that this is not vectorized.
+mean_unif_dist <- function(a, b, c, d) {
+  if ((b <= c) || (d <= a)) {
+    # Case of no intersection. Here expected absolute difference of
+    # non-overlapping uniforms is equal to absolute difference of their centers.
+    0.5 * abs(a + b - c - d)
+  } else {
+    points <- sort(c(a, b, c, d))
+    lens <- diff(points)
+    mids <- 0.5 * (points[-4] + points[-1])
+
+    if (((a < c) && (b < d)) || ((c < a) && (d < b))) {
+      # Case of "overlapping" intersection. This case can be viewed as three
+      # intervals: "left end"-"intersection"-"right end". Then, one distribution
+      # can be viewed as mixture of "left end" and "intersection" (with
+      # probabilities equal to proportions of their lengths to their sum), and
+      # the other is the same but with "intersection" and "right end".
+      # Example: X ~ U(0, 1), Y ~ U(0.6, 1.5). Then X can be views as mixture of
+      # U(0, 0.6) ("left") and U(0.6, 1) ("intersection") with probabilities
+      # 0.6/(0.6+0.4) and 0.4/(0.6+0.4). And Y as U(0.6, 1) and U(1, 1.5)
+      # ("right") with probabilities 0.4/(0.4+0.5) and 0.5/(0.4+0.5).
+
+      # Proportions of "intersection" with respect to two initial supports
+      share_left <- lens[2] / (lens[1] + lens[2])
+      share_right <- lens[2] / (lens[2] + lens[3])
+
+      # Treating uniforms as mixtures helps to compute expected value of
+      # abs.diff. by expanding mixture elements with respect to their
+      # probabilities.
+      (1 - share_left) * (
+        share_right * (mids[2] - mids[1]) +
+          (1 - share_right) * (mids[3] - mids[1])
+      ) +
+        share_left * (
+          # Expected abs.diff. of uniform with itself is equal to L/3 (L -
+          # length of its support).
+          share_right * lens[2] / 3 + (1 - share_right) * (mids[3] - mids[2])
+        )
+    } else {
+      # Case of "swallowing" intersection. One interval is a subset of another.
+      # The bigger one then can be viewed as mixture of three uniform, and the
+      # same technique can be applied as in "overlapping" case.
+      # Example: X ~ U(0, 1), Y ~ (0.5, 0.75). The X is a mixture of U(0, 0.5),
+      # U(0.5, 0.75) and U(0.75, 1) with probabilites 0.5, 0.25 and 0.25.
+      (lens[1] * (mids[2] - mids[1]) + lens[2] * lens[2] / 3 +
+        lens[3] * (mids[3] - mids[2])) /
+        (lens[1] + lens[2] + lens[3])
+    }
+  }
+}
+
+
+# Other -------------------------------------------------------------------
+disable_asserting_locally <- function() {
+  op <- options(pdqr.assert_args = FALSE)
+
+  do.call(
+    on.exit, list(substitute(options(op)), add = TRUE),
+    envir = parent.frame()
+  )
+}
+
+enable_asserting_locally <- function() {
+  op <- options(pdqr.assert_args = TRUE)
+
+  do.call(
+    on.exit, list(substitute(options(op)), add = TRUE),
+    envir = parent.frame()
+  )
 }

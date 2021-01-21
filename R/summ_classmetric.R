@@ -125,7 +125,6 @@
 #' summ_classmetric_df(
 #'   d_unif, d_norm, threshold = t_vec, method = c("TPR", "sensitivity")
 #' )
-#'
 #' @name summ_classmetric
 NULL
 
@@ -136,8 +135,10 @@ summ_classmetric <- function(f, g, threshold, method = "F1") {
   assert_pdqr_fun(g)
   assert_missing(threshold, "classification threshold")
   assert_type(threshold, is.numeric)
-  assert_type(method, is_string)
-  assert_in_set(method, names(classmetric_aliases))
+  assert_method(method, methods_classmetric)
+
+  # Speed optimization (skips possibly expensive assertions)
+  disable_asserting_locally()
 
   classmetric(
     p_f_t = as_p(f)(threshold),
@@ -145,6 +146,40 @@ summ_classmetric <- function(f, g, threshold, method = "F1") {
     method = classmetric_aliases[method]
   )
 }
+
+#' Aliases of methods for `summ_classmetric()`
+#'
+#' This is a vector of aliases for possible values of `method` argument in
+#' `summ_classmetric()`. Its names are all possible values of `method`, and
+#' values - "canonical" method name.
+#'
+#' @noRd
+classmetric_aliases <- c(
+  # Simple metrics
+  TPR   = "TPR", TP = "TPR", sensitivity = "TPR", recall = "TPR",
+  TNR   = "TNR", TN = "TNR", specificity = "TNR",
+  FPR   = "FPR", FP = "FPR", `fall-out` = "FPR",
+  FNR   = "FNR", FN = "FNR", miss_rate = "FNR",
+  PPV   = "PPV", precision = "PPV",
+  NPV   = "NPV",
+  FDR   = "FDR",
+  FOR   = "FOR",
+  `LR+` = "LR+",
+  `LR-` = "LR-",
+  # Combined metrics
+  Acc   = "Acc", accuracy = "Acc",
+  ER    = "ER", error_rate = "ER",
+  GM    = "GM",
+  F1    = "F1",
+  OP    = "OP",
+  MCC   = "MCC", corr = "MCC",
+  YI    = "YI", youden = "YI", informedness = "YI",
+  MK    = "MK", markedness = "MK",
+  Jaccard = "Jaccard",
+  DOR   = "DOR", odds_ratio = "DOR"
+)
+
+methods_classmetric <- names(classmetric_aliases)
 
 #' @rdname summ_classmetric
 #' @export
@@ -159,6 +194,9 @@ summ_classmetric_df <- function(f, g, threshold, method = "F1") {
       "`method` should contain only values allowed in `summ_classmetric()`."
     )
   }
+
+  # Speed optimization (skips possibly expensive assertions)
+  disable_asserting_locally()
 
   p_f_t <- as_p(f)(threshold)
   p_g_t <- as_p(g)(threshold)
@@ -217,7 +255,7 @@ classmetric <- function(p_f_t, p_g_t, method) {
     # GM = sqrt(TPR * TNR)
     GM = sqrt((1 - p_g_t) * p_f_t),
     # F1 = 2*TP / (2*TP + FP + FN)
-    F1 = 2 * (1 - p_g_t) / (2*(1 - p_g_t) + (1 - p_f_t) + p_g_t),
+    F1 = 2 * (1 - p_g_t) / (2 * (1 - p_g_t) + (1 - p_f_t) + p_g_t),
     # OP = Acc - abs(TPR - TNR) / (TPR + TNR)
     OP = classmetric_op(p_f_t, p_g_t),
     # MCC is computed based on explicit formula in `classmetric_mcc()`
@@ -225,7 +263,8 @@ classmetric <- function(p_f_t, p_g_t, method) {
     # YI = TPR + TNR - 1
     YI = (1 - p_g_t) + p_f_t - 1,
     # MK = PPV + NPV - 1
-    MK = classmetric(p_f_t, p_g_t, "PPV")+classmetric(p_f_t, p_g_t, "NPV")-1,
+    MK = classmetric(p_f_t, p_g_t, "PPV") +
+      classmetric(p_f_t, p_g_t, "NPV") - 1,
     # Jaccard = TP / (TP + FN + FP)
     Jaccard = (1 - p_g_t) / (1 + (1 - p_f_t)),
     # DOR = LR+ / LR-
@@ -250,37 +289,5 @@ classmetric_mcc <- function(p_f_t, p_g_t) {
   fn <- p_g_t
 
   # TP + FN = 1; TN + FP = 1
-  (tp*tn - fp*fn) / sqrt((tp + fp) * (tn + fn))
+  (tp * tn - fp * fn) / sqrt((tp + fp) * (tn + fn))
 }
-
-#' Aliases of methods for `summ_classmetric()`
-#'
-#' This is a vector of aliases for possible values of `method` argument in
-#' `summ_classmetric()`. Its names are all possible values of `method`, and
-#' values - "canonical" method name.
-#'
-#' @noRd
-classmetric_aliases <- c(
-  # Simple metrics
-  TPR   = "TPR", TP = "TPR", sensitivity = "TPR", recall = "TPR",
-  TNR   = "TNR", TN = "TNR", specificity = "TNR",
-  FPR   = "FPR", FP = "FPR", `fall-out` = "FPR",
-  FNR   = "FNR", FN = "FNR", miss_rate = "FNR",
-  PPV   = "PPV", precision = "PPV",
-  NPV   = "NPV",
-  FDR   = "FDR",
-  FOR   = "FOR",
-  `LR+` = "LR+",
-  `LR-` = "LR-",
-  # Combined metrics
-  Acc   = "Acc", accuracy = "Acc",
-  ER    = "ER", error_rate = "ER",
-  GM    = "GM",
-  F1    = "F1",
-  OP    = "OP",
-  MCC   = "MCC", corr = "MCC",
-  YI    = "YI", youden = "YI", informedness = "YI",
-  MK    = "MK", markedness = "MK",
-  Jaccard = "Jaccard",
-  DOR   = "DOR", odds_ratio = "DOR"
-)

@@ -20,7 +20,9 @@ as_d.default <- function(f, support = NULL, ..., n_grid = 10001) {
   }
 
   # Treate `f` as unknown d-function
-  d_f <- function(x) {f(x, ...)}
+  d_f <- function(x) {
+    f(x, ...)
+  }
 
   # Format support as vector with length two where `NA` indicates value to be
   # detected
@@ -32,13 +34,16 @@ as_d.default <- function(f, support = NULL, ..., n_grid = 10001) {
   # Compute `y`
   x <- seq_between(support, length.out = n_grid)
   y <- d_f(x)
-  y <- impute_inf(x, y, '`f` output')
+  y <- impute_inf(x, y, "`f` output")
 
   assert_tot_prob(sum(y, na.rm = TRUE))
 
   # This doesn't change output computation results and is needed for correct
   # approximation of q-function in case `as_q()` is called
   x_tbl <- remove_zero_edge_y(data.frame(x = x, y = y))
+
+  # Speed optimization (skips possibly expensive assertions)
+  disable_asserting_locally()
 
   new_d(x_tbl, "continuous")
 }
@@ -47,6 +52,9 @@ as_d.default <- function(f, support = NULL, ..., n_grid = 10001) {
 #' @export
 as_d.pdqr <- function(f, ...) {
   assert_pdqr_fun(f)
+
+  # Speed optimization (skips possibly expensive assertions)
+  disable_asserting_locally()
 
   new_d(x = meta_x_tbl(f), type = meta_type(f))
 }
@@ -93,14 +101,18 @@ construct_p_f <- function(d_f, init) {
 
   function(q) {
     init_p +
-      vapply(q, function(t) {integrate_safely(d_f, init, t)}, numeric(1))
+      vapply(q, function(t) {
+        integrate_safely(d_f, init, t)
+      }, numeric(1))
   }
 }
 
 optim_for_quan <- function(p_f, quan, init) {
   tryCatch(
     stats::optim(
-      par = init, fn = function(q) {abs(p_f(q) - quan)},
+      par = init, fn = function(q) {
+        abs(p_f(q) - quan)
+      },
       method = "Nelder-Mead",
       control = list(warn.1d.NelderMead = FALSE)
     )[["par"]][1],
@@ -116,9 +128,9 @@ detect_d_init_x <- function(d_f) {
   # Reproducible sequence of "try" points
   powers <- seq(from = -5, to = 7, length.out = 5000)
   modules <- 10^powers
-    # Using `rev()` to ensure that `try_points` is ordered increasingly, which
-    # is important to return the smallest and the biggest points with good
-    # values of `d_f`
+  ## Using `rev()` to ensure that `try_points` is ordered increasingly, which
+  ## is important to return the smallest and the biggest points with good
+  ## values of `d_f`
   try_points <- c(-rev(modules), 0, modules)
 
   # Values of `d_f` at "try" points

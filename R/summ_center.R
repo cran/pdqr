@@ -5,7 +5,8 @@
 #'
 #' @param f A pdqr-function representing distribution.
 #' @param method Method of center computation. For `summ_center()` is one of
-#'   "mean", "median", "mode". For `summ_mode()` is one of "global" or "local".
+#'   "mean", "median", "mode", "midrange". For `summ_mode()` is one of "global"
+#'   or "local".
 #'
 #' @details `summ_mean()` computes distribution's mean.
 #'
@@ -18,6 +19,9 @@
 #' of "x" column from `f`'s `x_tbl`) with the highest probability/density.
 #' `summ_mode(*, method = "local")` computes all `x` values which represent
 #' non-strict **local maxima** of probability mass/density function.
+#'
+#' `summ_midrange()` computes middle point of `f`'s [support][meta_support()]
+#' (average of left and right edges).
 #'
 #' @return `summ_center()`, `summ_mean()`, `summ_median()` and `summ_mode(*,
 #'   method = "global")` always return a single number representing a center of
@@ -32,42 +36,50 @@
 #' @examples
 #' # Type "continuous"
 #' d_norm <- as_d(dnorm)
-#'   # The same as `summ_center(d_norm, method = "mean")`
+#' ## The same as `summ_center(d_norm, method = "mean")`
 #' summ_mean(d_norm)
 #' summ_median(d_norm)
 #' summ_mode(d_norm)
+#' ## As pdqr-functions always have finite support, output here is finite
+#' summ_midrange(d_norm)
 #'
 #' # Type "discrete"
 #' d_pois <- as_d(dpois, lambda = 10)
 #' summ_mean(d_pois)
 #' summ_median(d_pois)
-#'   # Returns the smallest `x` with highest probability
+#' ## Returns the smallest `x` with highest probability
 #' summ_mode(d_pois)
-#'   # Returns all values which are non-strict local maxima
+#' ## Returns all values which are non-strict local maxima
 #' summ_mode(d_pois, method = "local")
+#' ## As pdqr-functions always have finite support, output here is finite
+#' summ_midrange(d_pois)
 #'
 #' # Details of computing local modes
-#' my_d <- new_d(data.frame(x = 11:15, y = c(0, 1, 0, 2, 0)/3), "continuous")
-#'   # Several values, which are entries of `x_tbl`, are returned as local modes
+#' my_d <- new_d(data.frame(x = 11:15, y = c(0, 1, 0, 2, 0) / 3), "continuous")
+#' ## Several values, which are entries of `x_tbl`, are returned as local modes
 #' summ_mode(my_d, method = "local")
-#'
 #' @name summ_center
 NULL
 
 #' @rdname summ_center
 #' @export
 summ_center <- function(f, method = "mean") {
-  # `f` is validated inside `summ_*()` calls
-  assert_type(method, is_string)
-  assert_in_set(method, c("mean", "median", "mode"))
+  assert_pdqr_fun(f)
+  assert_method(method, methods_center)
+
+  # Speed optimization (skips possibly expensive assertions)
+  disable_asserting_locally()
 
   switch(
     method,
     mean = summ_mean(f),
     median = summ_median(f),
-    mode = summ_mode(f, method = "global")
+    mode = summ_mode(f, method = "global"),
+    midrange = summ_midrange(f)
   )
 }
+
+methods_center <- c("mean", "median", "mode", "midrange")
 
 #' @rdname summ_center
 #' @export
@@ -89,6 +101,9 @@ summ_mean <- function(f) {
 summ_median <- function(f) {
   assert_pdqr_fun(f)
 
+  # Speed optimization (skips possibly expensive assertions)
+  disable_asserting_locally()
+
   as_q(f)(0.5)
 }
 
@@ -96,8 +111,7 @@ summ_median <- function(f) {
 #' @export
 summ_mode <- function(f, method = "global") {
   assert_pdqr_fun(f)
-  assert_type(method, is_string)
-  assert_in_set(method, c("global", "local"))
+  assert_method(method, methods_mode)
 
   f_x_tbl <- meta_x_tbl(f)
   x <- f_x_tbl[["x"]]
@@ -117,18 +131,29 @@ summ_mode <- function(f, method = "global") {
   }
 }
 
+methods_mode <- c("global", "local")
+
+#' @rdname summ_center
+#' @export
+summ_midrange <- function(f) {
+  assert_pdqr_fun(f)
+
+  supp <- meta_support(f)
+
+  (supp[1] + supp[2]) / 2
+}
+
 summ_mean_con <- function(x_tbl) {
   n <- nrow(x_tbl)
-  x_lag <- x_tbl[["x"]][-n]
-  x_lead <- x_tbl[["x"]][-1]
-  y_lag <- x_tbl[["y"]][-n]
-  y_lead <- x_tbl[["y"]][-1]
-  y_sum <- y_lag + y_lead
-  x_mass <- (x_lag * (y_lag + y_sum) + x_lead * (y_lead + y_sum))/(3 * y_sum)
+  x_left <- x_tbl[["x"]][-n]
+  x_right <- x_tbl[["x"]][-1]
+  dx  <- x_right - x_left
+  y_left <- x_tbl[["y"]][-n]
+  y_right <- x_tbl[["y"]][-1]
 
-  x_mass_is_good <- is.finite(x_mass)
-
-  prob <- diff(x_tbl[["cumprob"]])
-
-  dotprod(x_mass[x_mass_is_good], prob[x_mass_is_good])
+  # Not putting `dx` out of brackets to be more sure about the case of
+  # dirac-like functions
+  sum(
+    dx * (2 * y_left + y_right) * x_left + dx * (y_left + 2 * y_right) * x_right
+  ) / 6
 }

@@ -81,15 +81,14 @@
 #' summ_rocauc(d_dis_1, d_dis_2)
 #' summ_rocauc(d_dis_1, d_dis_2, method = "pessimistic")
 #' summ_rocauc(d_dis_1, d_dis_2, method = "optimistic")
-#'   # These methods correspond to different ways of plotting ROC curves
+#' ## These methods correspond to different ways of plotting ROC curves
 #' roc <- summ_roc(d_dis_1, d_dis_2)
-#'   # Default line plot for "expected" method
+#' ## Default line plot for "expected" method
 #' roc_plot(roc, main = "Different type of plotting ROC curve")
-#'   # Method "pessimistic"
+#' ## Method "pessimistic"
 #' roc_lines(roc, type = "s", col = "blue")
-#'   # Method "optimistic"
+#' ## Method "optimistic"
 #' roc_lines(roc, type = "S", col = "green")
-#'
 #' @name summ_roc
 NULL
 
@@ -103,6 +102,9 @@ summ_roc <- function(f, g, n_grid = 1001) {
     type_name = "single number more than 1",
     min_val = 1
   )
+
+  # Speed optimization (skips possibly expensive assertions)
+  disable_asserting_locally()
 
   # This is needed to achieve [0; 1] range of both `fpr` and `tpr` in case of
   # "discrete" type input
@@ -122,13 +124,17 @@ summ_roc <- function(f, g, n_grid = 1001) {
 summ_rocauc <- function(f, g, method = "expected") {
   assert_pdqr_fun(f)
   assert_pdqr_fun(g)
-  assert_type(method, is_string)
-  assert_in_set(method, c("expected", "pessimistic", "optimistic"))
+  assert_method(method, methods_rocauc)
+
+  # Speed optimization (skips possibly expensive assertions)
+  disable_asserting_locally()
 
   method_coef <- switch(method, expected = 0.5, pessimistic = 0, optimistic = 1)
 
   prob_greater(g, f) + method_coef * prob_equal(g, f)
 }
+
+methods_rocauc <- c("expected", "pessimistic", "optimistic")
 
 #' @rdname summ_roc
 #' @export

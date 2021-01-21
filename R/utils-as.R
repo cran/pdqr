@@ -149,35 +149,42 @@
 #' r_beta <- as_r(rbeta, shape1 = 2, shape2 = 2)
 #' d_pois <- as_d(dpois, lambda = 5)
 #'
-#'   # `pdqr_approx_error()` computes pdqr approximation error
+#' ## `pdqr_approx_error()` computes pdqr approximation error
 #' summary(pdqr_approx_error(as_d(dnorm), dnorm))
 #'
-#'   # This will work as if input is unkonw function because of unsupported
-#'   # variable name
-#' my_runif <- function(n) {runif(n)}
+#' ## This will work as if input is unkonw function because of unsupported
+#' ## variable name
+#' my_runif <- function(n) {
+#'   runif(n)
+#' }
 #' r_unif_2 <- as_r(my_runif)
 #' plot(as_d(r_unif_2))
 #'
 #' # Convert some other function to be a "proper" pdqr-function
-#' my_d_quadr <- as_d(function(x) {0.75*(1 - x^2)}, support = c(-1, 1))
+#' my_d_quadr <- as_d(function(x) {
+#'   0.75 * (1 - x^2)
+#' }, support = c(-1, 1))
 #'
 #' # Support detection
-#' unknown <- function(x) {dnorm(x, mean = 1)}
-#'   # Completely automatic support detection
+#' unknown <- function(x) {
+#'   dnorm(x, mean = 1)
+#' }
+#' ## Completely automatic support detection
 #' as_d(unknown)
-#'   # Semi-automatic support detection
+#' ## Semi-automatic support detection
 #' as_d(unknown, support = c(-4, NA))
 #' as_d(unknown, support = c(NA, 5))
 #'
-#'   # If support is very small and very distant from zero, it probably won't
-#'   # get detected in `as_d()` (throwing a relevant error)
+#' ## If support is very small and very distant from zero, it probably won't
+#' ## get detected in `as_d()` (throwing a relevant error)
 #' \dontrun{
-#' as_d(function(x) {dnorm(x, mean = 10000, sd = 0.1)})
+#' as_d(function(x) {
+#'   dnorm(x, mean = 10000, sd = 0.1)
+#' })
 #' }
 #'
 #' # Using different level of granularity
 #' as_d(unknown, n_grid = 1001)
-#'
 #' @name as-pdqr
 NULL
 
@@ -270,7 +277,7 @@ honored_distr_supp <- function(distr, q_fun, ..., p = 1e-6) {
   } else if (distr %in% c("cauchy")) {
     # Cutting more tails from Cauchy distribution because they are long and
     # heavy.
-    big_p <- 1e3*p
+    big_p <- 1e3 * p
     distr_edge_quantiles <- c(big_p, 1 - big_p)
   } else {
     stop_collapse('Distribution "', distr, '" is not honored properly.')
@@ -302,30 +309,14 @@ stretch_to_total_supp <- function(supp, total_supp, h = 1e-2) {
 # Other -------------------------------------------------------------------
 y_from_p_grid <- function(x, p) {
   # It is assumed that `x` has no duplicates and sorted increasingly
-  n <- length(x)
-
-  # `y_inter_sum` is vector: (y_1 + y_2; y_2 + y_3; ...; y_{n-1} + y_n)
-  y_inter_sum <- 2 * diff(p) / diff(x)
-  n_inter_sum <- length(y_inter_sum)
-
-  # To solve this system of algebraic equations for y_1, ..., y_n precisely one
-  # needs to introduce extra condition to complete the set. However, more stable
-  # approach is to solve it approximately. Thus this function's output are
-  # density values that "approximate" and not "interpolate" CDF values.
-  # Approximation is also needed because there might be points of discontinuity
-  # which should be approximated with piecewise-linear continuous density.
-
-  # Used approximation assumes that "locally" y_{i-1}, y_{i}, and y_{i+1} lie
-  # on the same straight line. This is used to estimate y_{i} (i from 2 to n-1).
-  slopes <- diff(y_inter_sum) / (x[3:n] - x[1:(n-2)])
-  intercepts <- (y_inter_sum[1:(n-2)] - slopes * (x[1:(n-2)] + x[2:(n-1)])) / 2
-  y_2_to_nm1 <- slopes * x[2:(n-1)] + intercepts
-
-  # Both y_1 and y_n are computed from sums directly
-  y <- c(
-    y_inter_sum[1] - y_2_to_nm1[1],
-    y_2_to_nm1,
-    y_inter_sum[n_inter_sum] - y_2_to_nm1[n_inter_sum - 1]
+  # Values of density are computed as numerical derivatives at `x` points
+  p_lin_derivs <- diff(p) / diff(x)
+  n_int <- length(p_lin_derivs)
+  y <- 0.5 * c(
+    # Boundary derivatives need special treatment for accuracy reasons
+    3 * p_lin_derivs[1] - p_lin_derivs[2],
+    p_lin_derivs[-n_int] + p_lin_derivs[-1],
+    -p_lin_derivs[n_int - 1] + 3 * p_lin_derivs[n_int]
   )
 
   # Extra cutoffs to ensure positive `y`. Sometimes it is needed when `y` is

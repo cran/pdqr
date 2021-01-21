@@ -100,9 +100,9 @@
 #' plot(my_d_con)
 #'
 #' # Data frame input
-#'   # Values in "prob" column will be normalized automatically
+#' ## Values in "prob" column will be normalized automatically
 #' my_p_dis <- new_p(data.frame(x = 1:4, prob = 1:4), "discrete")
-#'   # As are values in "y" column
+#' ## As are values in "y" column
 #' my_p_con <- new_p(data.frame(x = 1:3, y = c(0, 10, 0)), "continuous")
 #'
 #' # Using bigger bandwidth in `density()`
@@ -112,7 +112,6 @@
 #'
 #' # Dirac-like "continuous" pdqr-function is created if `x` is a single number
 #' meta_x_tbl(new_d(1, "continuous"))
-#'
 #' @name new-pdqr
 NULL
 
@@ -171,23 +170,51 @@ filter_numbers <- function(x) {
 
 # Predicates for pdqr-functions -------------------------------------------
 is_pdqr_fun <- function(f) {
-  tryCatch(assert_pdqr_fun(f), error = function(e) {FALSE})
+  # Force performing assertions in order to have chance of getting `FALSE` in
+  # case option "pdqr.assert_args" is disabled
+  enable_asserting_locally()
+
+  tryCatch(assert_pdqr_fun(f), error = function(e) {
+    FALSE
+  })
 }
 
 is_pdqr_type <- function(type) {
-  tryCatch(assert_pdqr_type(type), error = function(e) {FALSE})
+  # Force performing assertions in order to have chance of getting `FALSE` in
+  # case option "pdqr.assert_args" is disabled
+  enable_asserting_locally()
+
+  tryCatch(assert_pdqr_type(type), error = function(e) {
+    FALSE
+  })
 }
 
 is_support <- function(supp, allow_na = FALSE) {
-  tryCatch(assert_support(supp, allow_na), error = function(e) {FALSE})
+  # Force performing assertions in order to have chance of getting `FALSE` in
+  # case option "pdqr.assert_args" is disabled
+  enable_asserting_locally()
+
+  tryCatch(assert_support(supp, allow_na), error = function(e) {
+    FALSE
+  })
 }
 
 is_x_tbl <- function(x, type) {
-  tryCatch(assert_x_tbl(x, type), error = function(e) {FALSE})
+  # Force performing assertions in order to have chance of getting `FALSE` in
+  # case option "pdqr.assert_args" is disabled
+  enable_asserting_locally()
+
+  tryCatch(assert_x_tbl(x, type), error = function(e) {
+    FALSE
+  })
 }
 
 is_x_tbl_meta <- function(x, type) {
-  tryCatch(assert_x_tbl_meta(x, type), error = function(e) {FALSE})
+  # There is no `enable_asserting_locally()` because this is a helper function
+
+  tryCatch(assert_x_tbl_meta(x, type), error = function(e) {
+    FALSE
+  })
 }
 
 is_pdqr_class <- function(chr) {
@@ -255,7 +282,8 @@ compute_piecelin_density_coeffs <- function(x_tbl, ind_vec) {
   ind_is_in <- (ind_vec >= 1) & (ind_vec < length(x))
   inds_in <- ind_vec[ind_is_in]
 
-  slope[ind_is_in] <- (y[inds_in+1] - y[inds_in]) / (x[inds_in+1] - x[inds_in])
+  slope[ind_is_in] <- (y[inds_in + 1] - y[inds_in]) /
+    (x[inds_in + 1] - x[inds_in])
   intercept[ind_is_in] <- y[inds_in] - slope[ind_is_in] * x[inds_in]
 
   list(slope = slope, intercept = intercept)

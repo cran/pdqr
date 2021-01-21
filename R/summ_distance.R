@@ -5,7 +5,8 @@
 #' pdqr-functions. Here "distance" is used in a broad sense: a single
 #' non-negative number representing how much two distributions differ from one
 #' another. Bigger values indicate bigger difference. Zero value means that
-#' input distributions are equivalent based on the method used. The notion of
+#' input distributions are equivalent based on the method used (except method
+#' "avgdist" which is almost always returns positive value). The notion of
 #' "distance" is useful for doing statistical inference about similarity of two
 #' groups of numbers.
 #'
@@ -13,7 +14,7 @@
 #'   [class][meta_class()].
 #' @param g A pdqr-function of any type and class.
 #' @param method Method for computing distance. Should be one of "KS", "totvar",
-#'   "compare", "wass", "cramer", "align", "entropy".
+#'   "compare", "wass", "cramer", "align", "avgdist", "entropy".
 #'
 #' @details Methods can be separated into three categories: probability based,
 #' metric based, and entropy based.
@@ -64,6 +65,16 @@
 #' method is somewhat slow (compared to all others). To increase speed, use less
 #' elements in ["x_tbl" metadata][meta_x_tbl()]. For example, with
 #' [form_retype()] or smaller `n_grid` argument in [as_*()][as_p()] functions.
+#' - *Method "avgdist"* computes average distance between sample values from
+#' inputs. Basically, it is a deterministically computed approximation of
+#' expected value of absolute difference between random variables, or in 'pdqr'
+#' code: `summ_mean(abs(f - g))` (but computed without randomness). Computation
+#' is done by approximating possibly present continuous pdqr-functions with
+#' discrete ones (see description of ["pdqr.approx_discrete_n_grid"
+#' option][pdqr-package] for more information) and then computing output value
+#' directly based on two discrete pdqr-functions. **Note** that this method
+#' almost never returns zero, even for identical inputs (except the case of
+#' discrete pdqr-functions with identical one value).
 #'
 #' **Entropy based** methods compute output based on entropy characteristics:
 #' - *Method "entropy"* computes sum of two Kullback-Leibler divergences:
@@ -75,7 +86,7 @@
 #'
 #' @return A single non-negative number representing distance between pair of
 #'   distributions. For methods "KS", "totvar", and "compare" it is not bigger
-#'   than 1.
+#'   than 1. For method "avgdist" it is almost always bigger than 0.
 #'
 #' @seealso [summ_separation()] for computation of optimal threshold separating
 #'   pair of distributions.
@@ -87,25 +98,30 @@
 #' d_norm <- as_d(dnorm, mean = 1)
 #'
 #' vapply(
-#'   c("KS", "totvar", "compare", "wass", "cramer", "align", "entropy"),
-#'   function(meth) {summ_distance(d_unif, d_norm, method = meth)},
+#'   c(
+#'     "KS", "totvar", "compare",
+#'     "wass", "cramer", "align", "avgdist",
+#'     "entropy"
+#'   ),
+#'   function(meth) {
+#'     summ_distance(d_unif, d_norm, method = meth)
+#'   },
 #'   numeric(1)
 #' )
 #'
 #' # "Supremum" quality of "KS" distance
 #' d_dis <- new_d(2, "discrete")
-#'   # Distance is 1, which is a limit of |F - G| at points which tend to 2 from
-#'   # left
+#' ## Distance is 1, which is a limit of |F - G| at points which tend to 2 from
+#' ## left
 #' summ_distance(d_dis, d_unif, method = "KS")
-#'
 #' @export
 summ_distance <- function(f, g, method = "KS") {
   assert_pdqr_fun(f)
   assert_pdqr_fun(g)
-  assert_type(method, is_string)
-  assert_in_set(
-    method, c("KS", "totvar", "compare", "wass", "cramer", "align", "entropy")
-  )
+  assert_method(method, methods_distance)
+
+  # Speed optimization (skips possibly expensive assertions)
+  disable_asserting_locally()
 
   switch(
     method,
@@ -115,9 +131,14 @@ summ_distance <- function(f, g, method = "KS") {
     wass = distance_wass(f, g),
     cramer = distance_cramer(f, g),
     align = distance_align(f, g),
+    avgdist = distance_avgdist(f, g),
     entropy = distance_entropy(f, g)
   )
 }
+
+methods_distance <- c(
+  "KS", "totvar", "compare", "wass", "cramer", "align", "avgdist", "entropy"
+)
 
 
 # Method "KS" -------------------------------------------------------------
@@ -222,7 +243,7 @@ distance_totvar_two_con <- function(d_f, d_g) {
   # case both `x_lim_left` and `x_lim_right` are empty and `sum()` later will
   # return 0, which is correct answer.
   x_lim_left <- x_lim[pos_sign_inds]
-  x_lim_right <- x_lim[pos_sign_inds+1]
+  x_lim_right <- x_lim[pos_sign_inds + 1]
 
   p_f <- as_p(d_f)
   p_g <- as_p(d_g)
@@ -274,7 +295,7 @@ distance_cramer <- function(f, g) {
 }
 
 
-# distance_align() --------------------------------------------------------
+# Method "align" ----------------------------------------------------------
 distance_align <- function(f, g) {
   f_supp <- meta_support(f)
   g_supp <- meta_support(g)
@@ -307,6 +328,27 @@ distance_align <- function(f, g) {
 }
 
 
+# Method "avgdist" --------------------------------------------------------
+distance_avgdist <- function(f, g) {
+  f <- approx_discrete(f)
+  f_x_tbl <- meta_x_tbl(f)
+  f_x <- f_x_tbl[["x"]]
+  f_prob <- f_x_tbl[["prob"]]
+
+  g <- approx_discrete(g)
+  g_x_tbl <- meta_x_tbl(g)
+  g_x <- g_x_tbl[["x"]]
+  g_prob <- g_x_tbl[["prob"]]
+
+  # Compute average distance between two discrete distributions
+  f_x_avgdist <- vapply(f_x, function(cur_x) {
+    sum(abs(cur_x - g_x) * g_prob)
+  }, numeric(1))
+
+  sum(f_x_avgdist * f_prob)
+}
+
+
 # Method "entropy" --------------------------------------------------------
 distance_entropy <- function(f, g) {
   # This is mostly the same as sum of `summ_entropy2(*, *, method = "relative")`
@@ -331,7 +373,9 @@ integrate_cdf_absdiff <- function(p_f, p_g, power) {
     integr_range <- union_support(p_f, p_g)
 
     stats::integrate(
-      f = function(x) {abs(p_f(x) - p_g(x))^power},
+      f = function(x) {
+        abs(p_f(x) - p_g(x))^power
+      },
       lower = integr_range[1],
       upper = integr_range[2],
       subdivisions = 1e3

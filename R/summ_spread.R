@@ -34,7 +34,7 @@
 #' @examples
 #' # Type "continuous"
 #' d_norm <- as_d(dnorm)
-#'   # The same as `summ_spread(d_norm, method = "sd")`
+#' ## The same as `summ_spread(d_norm, method = "sd")`
 #' summ_sd(d_norm)
 #' summ_var(d_norm)
 #' summ_iqr(d_norm)
@@ -51,21 +51,22 @@
 #'
 #' # Difference of `summ_range(f)` and `diff(meta_support(f))`
 #' zero_tails <- new_d(data.frame(x = 1:5, y = c(0, 0, 1, 0, 0)), "continuous")
-#'   # This returns difference between 5 and 1
+#' ## This returns difference between 5 and 1
 #' diff(meta_support(zero_tails))
-#'   # This returns difference between 2 and 4 as there are zero-probability
-#'   # tails
+#' ## This returns difference between 2 and 4 as there are zero-probability
+#' ## tails
 #' summ_range(zero_tails)
-#'
 #' @name summ_spread
 NULL
 
 #' @rdname summ_spread
 #' @export
 summ_spread <- function(f, method = "sd") {
-  # `f` is validated inside `summ_*()` calls
-  assert_type(method, is_string)
-  assert_in_set(method, c("var", "sd", "iqr", "mad", "range"))
+  assert_pdqr_fun(f)
+  assert_method(method, methods_spread)
+
+  # Speed optimization (skips possibly expensive assertions)
+  disable_asserting_locally()
 
   switch(
     method,
@@ -76,6 +77,8 @@ summ_spread <- function(f, method = "sd") {
     range = summ_range(f)
   )
 }
+
+methods_spread <- c("var", "sd", "iqr", "mad", "range")
 
 #' @rdname summ_spread
 #' @export
@@ -97,6 +100,9 @@ summ_var <- function(f) {
 summ_iqr <- function(f) {
   assert_pdqr_fun(f)
 
+  # Speed optimization (skips possibly expensive assertions)
+  disable_asserting_locally()
+
   quarts <- as_q(f)(c(0.25, 0.75))
 
   quarts[2] - quarts[1]
@@ -107,6 +113,9 @@ summ_iqr <- function(f) {
 summ_mad <- function(f) {
   # `f` is validated inside `summ_median(f)`
   med <- summ_median(f)
+
+  # Speed optimization (skips possibly expensive assertions)
+  disable_asserting_locally()
 
   summ_median(abs(f - med))
 }

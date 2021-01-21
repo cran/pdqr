@@ -1,4 +1,5 @@
 # form_mix ----------------------------------------------------------------
+
 #' Form mixture of distributions
 #'
 #' Based on a list of pdqr-functions and vector of weights form a pdqr-function
@@ -50,15 +51,15 @@
 #' d_unif <- as_d(dunif)
 #'
 #' con_mix <- form_mix(list(p_norm, d_unif), weights = c(0.7, 0.3))
-#'   # Output is a p-function, as is first element of `f_list`
+#' ## Output is a p-function, as is first element of `f_list`
 #' con_mix
 #' plot(con_mix)
 #'
-#'   # Use `as_*()` functions to change class
+#' ## Use `as_*()` functions to change class
 #' d_con_mix <- as_d(con_mix)
 #'
-#'   # Theoretical output density should be discontinuous, but here it is
-#'   # approximated with continuous function
+#' ## Theoretical output density should be discontinuous, but here it is
+#' ## approximated with continuous function
 #' con_x_tbl <- meta_x_tbl(con_mix)
 #' con_x_tbl[(con_x_tbl$x >= -1e-4) & (con_x_tbl$x <= 1e-4), ]
 #'
@@ -67,9 +68,8 @@
 #' plot(all_mix)
 #' all_x_tbl <- meta_x_tbl(all_mix)
 #'
-#'   # What dirac-like approximation looks like
+#' ## What dirac-like approximation looks like
 #' all_x_tbl[(all_x_tbl$x >= 1.5) & (all_x_tbl$x <= 2.5), ]
-#'
 #' @export
 form_mix <- function(f_list, weights = NULL) {
   assert_f_list(f_list, allow_numbers = FALSE)
@@ -77,10 +77,17 @@ form_mix <- function(f_list, weights = NULL) {
   assert_type(weights, is.numeric, allow_null = TRUE)
   weights <- impute_weights(weights, length(f_list))
 
+  # Speed optimization (skips possibly expensive assertions)
+  disable_asserting_locally()
+
   f_list_meta <- compute_f_list_meta(f_list)
   res_type <- f_list_meta[["type"]]
 
-  sec_col <- if (res_type == "discrete") {"prob"} else {"y"}
+  sec_col <- if (res_type == "discrete") {
+    "prob"
+  } else {
+    "y"
+  }
 
   x_tbl_list <- lapply(seq_along(f_list), function(i) {
     f_typed <- form_retype(f_list[[i]], res_type, method = "dirac")
@@ -116,6 +123,7 @@ impute_weights <- function(weights, n) {
 
 
 # form_smooth -------------------------------------------------------------
+
 #' Smooth pdqr-function
 #'
 #' Smooth pdqr-function using random sampling and corresponding
@@ -165,7 +173,6 @@ impute_weights <- function(weights, n) {
 #' smoothed_con <- form_smooth(bad_con)
 #' plot(bad_con)
 #' lines(smoothed_con, col = "blue")
-#'
 #' @export
 form_smooth <- function(f, n_sample = 10000, args_new = list()) {
   assert_pdqr_fun(f)
@@ -175,6 +182,9 @@ form_smooth <- function(f, n_sample = 10000, args_new = list()) {
     min_val = 2
   )
   assert_type(args_new, is.list)
+
+  # Speed optimization (skips possibly expensive assertions)
+  disable_asserting_locally()
 
   f_x_tbl <- meta_x_tbl(f)
   pdqr_fun <- new_pdqr_by_ref(f)
@@ -209,6 +219,7 @@ form_smooth <- function(f, n_sample = 10000, args_new = list()) {
 
 
 # form_estimate -----------------------------------------------------------
+
 #' Create a pdqr-function for distribution of sample estimate
 #'
 #' Based on pdqr-function, statistic function, and sample size describe the
@@ -255,10 +266,10 @@ form_smooth <- function(f, n_sample = 10000, args_new = list()) {
 #' set.seed(101)
 #'
 #' # Type "discrete"
-#' d_dis <- new_d(data.frame(x = 1:4, prob = 1:4/10), "discrete")
-#'   # Estimate of distribution of mean
+#' d_dis <- new_d(data.frame(x = 1:4, prob = 1:4 / 10), "discrete")
+#' ## Estimate of distribution of mean
 #' form_estimate(d_dis, stat = mean, sample_size = 10)
-#'   # To change type of output, supply it in `args_new`
+#' ## To change type of output, supply it in `args_new`
 #' form_estimate(
 #'   d_dis, stat = mean, sample_size = 10,
 #'   args_new = list(type = "continuous")
@@ -266,7 +277,7 @@ form_smooth <- function(f, n_sample = 10000, args_new = list()) {
 #'
 #' # Type "continuous"
 #' d_unif <- as_d(dunif)
-#'   # Supply extra named arguments for `stat` in `...`
+#' ## Supply extra named arguments for `stat` in `...`
 #' plot(form_estimate(d_unif, stat = mean, sample_size = 10, trim = 0.1))
 #' lines(
 #'   form_estimate(d_unif, stat = mean, sample_size = 10, trim = 0.3),
@@ -279,8 +290,10 @@ form_smooth <- function(f, n_sample = 10000, args_new = list()) {
 #'
 #' # Statistic can return single logical value
 #' d_norm <- as_d(dnorm)
-#' all_positive <- function(x) {all(x > 0)}
-#'   # Probability of being true should be around 0.5^5
+#' all_positive <- function(x) {
+#'   all(x > 0)
+#' }
+#' ## Probability of being true should be around 0.5^5
 #' form_estimate(d_norm, stat = all_positive, sample_size = 5)
 #' }
 #'
@@ -301,6 +314,9 @@ form_estimate <- function(f, stat, sample_size, ...,
   )
   assert_type(args_new, is.list)
 
+  # Speed optimization (skips possibly expensive assertions)
+  disable_asserting_locally()
+
   # Producing sample of statistics
   r_f <- as_r(f)
   est_smpl <- lapply(seq_len(n_sample), function(i) {
@@ -311,7 +327,9 @@ form_estimate <- function(f, stat, sample_size, ...,
   est_smpl_is_number <- vapply(est_smpl, is_single_number, logical(1))
   est_smpl_is_bool <- vapply(
     # Not using `is_truefalse()` here because `NA` output is allowed
-    est_smpl, function(x) {is.logical(x) && (length(x) == 1)}, logical(1)
+    est_smpl, function(x) {
+      is.logical(x) && (length(x) == 1)
+    }, logical(1)
   )
   if (!all(est_smpl_is_number | est_smpl_is_bool)) {
     stop_collapse(
@@ -337,6 +355,7 @@ form_estimate <- function(f, stat, sample_size, ...,
 
 
 # form_recenter and form_respread -----------------------------------------
+
 #' Change center and spread of distribution
 #'
 #' These functions implement linear transformations, output distribution of
@@ -375,19 +394,22 @@ form_estimate <- function(f, stat, sample_size, ...,
 #'
 #' my_beta3 <- form_respread(my_beta2, to = 10, method = "range")
 #' summ_spread(my_beta3, method = "range")
-#'   # Center remains unchainged
+#' ## Center remains unchainged
 #' summ_center(my_beta3)
-#'
 #' @name form_recenter
 NULL
 
 #' @rdname form_recenter
 #' @export
 form_recenter <- function(f, to, method = "mean") {
-  # `f` and `method` are checked in subsequent `summ_center()` call
+  assert_pdqr_fun(f)
   assert_type(to, is_single_number, type_name = "single number")
+  assert_method(method, methods_center)
 
-  f - summ_center(f, method) + to
+  # Speed optimization (skips possibly expensive assertions)
+  disable_asserting_locally()
+
+  f + (to - summ_center(f, method))
 }
 
 #' @rdname form_recenter
@@ -395,14 +417,16 @@ form_recenter <- function(f, to, method = "mean") {
 form_respread <- function(f, to, method = "sd", center_method = "mean") {
   # `f` and `method` are checked in subsequent `summ_center()` and
   # `summ_spread()` calls
+  assert_pdqr_fun(f)
   assert_type(
     to, is_single_number, type_name = "single non-negative number",
     min_val = 0
   )
-  # `center_method` needs its own check to preserve variable name in possible
-  # error output
-  assert_type(center_method, is_string)
-  assert_in_set(center_method, c("mean", "median", "mode"))
+  assert_method(method, methods_spread)
+  assert_method(center_method, methods_center)
+
+  # Speed optimization (skips possibly expensive assertions)
+  disable_asserting_locally()
 
   center <- summ_center(f, center_method)
 

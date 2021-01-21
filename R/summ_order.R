@@ -6,7 +6,7 @@
 #'
 #' @param f_list List of pdqr-functions.
 #' @param method Method to be used for ordering. Should be one of "compare",
-#'   "mean", "median", "mode".
+#'   "mean", "median", "mode", "midrange".
 #' @param decreasing If `TRUE` ordering is done decreasingly.
 #'
 #' @details Ties for all methods are handled so as to preserve the original
@@ -27,9 +27,9 @@
 #' - Because comparing two pdqr-functions can be time consuming, this method
 #' becomes rather slow as number of `f_list` elements grows.
 #'
-#' Methods "mean", "median", and "mode" are based on [summ_center()]:
-#' ordering of `f_list` is defined as ordering of corresponding measures of
-#' distribution's center.
+#' Methods "mean", "median", "mode", and "midrange" are based on
+#' [summ_center()]: ordering of `f_list` is defined as ordering of corresponding
+#' measures of distribution's center.
 #'
 #' @return `summ_order()` works essentially like [order()][base::order()]. It
 #' returns an integer vector representing a permutation which rearranges
@@ -77,9 +77,8 @@
 #'   new_d(data.frame(x = c(0.03, 0.40, 0.80), y = c(1, 1, 1)), "continuous")
 #' )
 #' summ_sort(non_trans_list)
-#'   # Output doesn't depend on initial order
+#' ## Output doesn't depend on initial order
 #' summ_sort(non_trans_list[c(2, 3, 1)])
-#'
 #' @name summ_order
 NULL
 
@@ -87,18 +86,23 @@ NULL
 #' @rdname summ_order
 summ_order <- function(f_list, method = "compare", decreasing = FALSE) {
   assert_f_list(f_list, allow_numbers = FALSE)
-  assert_type(method, is_string)
-  assert_in_set(method, c("compare", "mean", "median", "mode"))
+  assert_method(method, methods_order)
   assert_type(decreasing, is_truefalse, "`TRUE` or `FALSE`")
+
+  # Speed optimization (skips possibly expensive assertions)
+  disable_asserting_locally()
 
   switch(
     method,
     compare = order_compare(f_list, decreasing = decreasing),
     mean = ,
     median = ,
-    mode = order_center(f_list, method, decreasing = decreasing)
+    mode = ,
+    midrange = order_center(f_list, method, decreasing = decreasing)
   )
 }
+
+methods_order <- c("compare", methods_center)
 
 #' @export
 #' @rdname summ_order
@@ -123,7 +127,7 @@ order_compare <- function(f_list, decreasing) {
   # non-transitivity issue of `>.pdqr_list` by removing dependence of output
   # based on the order of the input.
   # Example of the effect of non-transitivity:
-  #```
+  # ```
   # # Here P(d1 <= d2) >= 0.5, P(d2 <= d3) >= 0.5, but P(d1 <= d3) < 0.5
   # d1 <- new_d(
   #   data.frame(x = c(0.39, 0.44, 0.46), y = c(17, 14, 0)), "continuous"

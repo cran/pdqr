@@ -66,7 +66,7 @@ p-function (returns the smallest "x" value which has cumulative probability
 not less than input).
 \item R-function generates random sample of size \code{n} (its single number input)
 from distribution. Internally it is implemented using inverse transform
-sampling: certain amount of points from \link[stats:runif]{standard uniform distribution} is generated, and the output is values of
+sampling: certain amount of points from \link[stats:Uniform]{standard uniform distribution} is generated, and the output is values of
 corresponding q-function at generated points.
 }
 
@@ -167,5 +167,4 @@ meta_class(d_unif)
 meta_type(d_unif)
 meta_support(d_unif)
 head(meta_x_tbl(d_unif))
-
 }

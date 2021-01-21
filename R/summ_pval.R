@@ -49,20 +49,18 @@
 #'
 #' # Adjustment is made for multiple observed values
 #' summ_pval(d_norm, seq(0, 2, by = 0.1))
-#'   # Use `adjust = "none"` for to not do any adjustment
+#' ## Use `adjust = "none"` for to not do any adjustment
 #' summ_pval(d_norm, seq(0, 2, by = 0.1), adjust = "none")
-#'
 #' @export
 summ_pval <- function(f, obs, method = "both", adjust = "holm") {
   assert_pdqr_fun(f)
   assert_missing(obs, "numeric vector of observation(s)")
   assert_type(obs, is.numeric)
+  assert_method(method, methods_pval)
+  assert_method(adjust, stats::p.adjust.methods)
 
-  assert_type(method, is_string)
-  assert_in_set(method, c("both", "right", "left"))
-
-  assert_type(adjust, is_string)
-  assert_in_set(adjust, stats::p.adjust.methods)
+  # Speed optimization (skips possibly expensive assertions)
+  disable_asserting_locally()
 
   f <- as_p(f)
 
@@ -75,6 +73,8 @@ summ_pval <- function(f, obs, method = "both", adjust = "holm") {
 
   stats::p.adjust(res, method = adjust)
 }
+
+methods_pval <- c("both", "right", "left")
 
 both_pval <- function(p_f, obs) {
   res <- 2 * pmin(right_pval(p_f, obs), left_pval(p_f, obs))
