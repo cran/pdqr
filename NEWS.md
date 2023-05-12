@@ -1,3 +1,7 @@
+# pdqr 0.3.1
+
+* Maintenance release in reaction to an update of `stats::density()`.
+
 # pdqr 0.3.0
 
 * New function `region_distance()` computes distance between pair of regions.
